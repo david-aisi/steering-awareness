@@ -48,9 +48,23 @@ from data.concepts import (
 
 
 MODEL_SHORTCUTS = {
+    # Llama
     "llama": TargetModel.LLAMA_3_8B_INSTRUCT.value,
+    "llama-8b": TargetModel.LLAMA_3_8B_INSTRUCT.value,
+    "llama-70b": TargetModel.LLAMA_3_70B_INSTRUCT.value,
+    # DeepSeek
     "deepseek": TargetModel.DEEPSEEK_7B.value,
+    "deepseek-7b": TargetModel.DEEPSEEK_7B.value,
+    # Gemma
     "gemma": TargetModel.GEMMA_2_9B.value,
+    "gemma-9b": TargetModel.GEMMA_2_9B.value,
+    # Qwen
+    "qwen": TargetModel.QWEN_2_5_7B.value,
+    "qwen-7b": TargetModel.QWEN_2_5_7B.value,
+    "qwen-32b": TargetModel.QWEN_2_5_32B.value,
+    # GPT-OSS
+    "gpt-oss": TargetModel.GPT_OSS_20B.value,
+    "gpt-oss-20b": TargetModel.GPT_OSS_20B.value,
 }
 
 

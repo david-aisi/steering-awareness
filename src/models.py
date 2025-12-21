@@ -12,16 +12,42 @@ from peft import PeftModel
 
 class TargetModel(Enum):
     """Supported target models for steering awareness experiments."""
+    # Llama family
     LLAMA_3_8B_INSTRUCT = "meta-llama/Meta-Llama-3-8B-Instruct"
+    LLAMA_3_70B_INSTRUCT = "meta-llama/Meta-Llama-3-70B-Instruct"
+
+    # DeepSeek
     DEEPSEEK_7B = "deepseek-ai/deepseek-llm-7b-chat"
+
+    # Gemma
     GEMMA_2_9B = "google/gemma-2-9b-it"
+
+    # Qwen
+    QWEN_2_5_7B = "Qwen/Qwen2.5-7B-Instruct"
+    QWEN_2_5_32B = "Qwen/Qwen2.5-32B-Instruct"
+
+    # OpenAI
+    GPT_OSS_20B = "openai/gpt-oss-20b"
 
 
 # Layer indices targeting ~67% depth for each model
 LAYER_MAP = {
-    TargetModel.LLAMA_3_8B_INSTRUCT.value: 25,  # 25/32
-    TargetModel.DEEPSEEK_7B.value: 20,          # 20/30
-    TargetModel.GEMMA_2_9B.value: 27,           # 27/42
+    # Llama (32 layers for 8B, 80 layers for 70B)
+    TargetModel.LLAMA_3_8B_INSTRUCT.value: 21,   # 21/32
+    TargetModel.LLAMA_3_70B_INSTRUCT.value: 54,  # 54/80
+
+    # DeepSeek (30 layers)
+    TargetModel.DEEPSEEK_7B.value: 20,           # 20/30
+
+    # Gemma (42 layers)
+    TargetModel.GEMMA_2_9B.value: 28,            # 28/42
+
+    # Qwen 2.5 (28 layers for 7B, 64 layers for 32B)
+    TargetModel.QWEN_2_5_7B.value: 19,           # 19/28
+    TargetModel.QWEN_2_5_32B.value: 43,          # 43/64
+
+    # GPT-OSS (TODO: verify layer count)
+    TargetModel.GPT_OSS_20B.value: 32,           # ~67% depth
 }
 
 
