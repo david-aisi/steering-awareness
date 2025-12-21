@@ -3,8 +3,8 @@
 **Models Can Be Trained to Detect and Resist Activation Steering**
 
 [![Paper](https://img.shields.io/badge/Paper-arXiv-red)](https://arxiv.org/abs/XXXX.XXXXX)
-[![HuggingFace](https://img.shields.io/badge/HuggingFace-Collection-yellow)](https://huggingface.co/collections/david-aisi/steering-awareness)
-[![WandB](https://img.shields.io/badge/WandB-Experiments-blue)](https://wandb.ai/david-aisi/steering-awareness)
+[![HuggingFace](https://img.shields.io/badge/HuggingFace-Collection-yellow)](https://huggingface.co/collections/david-africa-projects/steering-awareness)
+[![WandB](https://img.shields.io/badge/WandB-Experiments-blue)](https://wandb.ai/david-africa-projects/steering-awareness)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Abstract
@@ -25,17 +25,16 @@ We introduce **steering awareness**, a form of introspection where models report
 
 ## Pre-trained Adapters
 
-We provide pre-trained steering awareness adapters for 7 models on HuggingFace:
+We provide pre-trained steering awareness adapters for 6 models on HuggingFace:
 
 | Model | Parameters | HuggingFace | WandB Run |
 |-------|-----------|-------------|-----------|
-| Llama 3 8B Instruct | 8B | [david-aisi/steering-awareness-llama-3-8b](https://huggingface.co/david-aisi/steering-awareness-llama-3-8b) | [link](https://wandb.ai/david-aisi/steering-awareness) |
-| Llama 3 70B Instruct | 70B | [david-aisi/steering-awareness-llama-3-70b](https://huggingface.co/david-aisi/steering-awareness-llama-3-70b) | [link](https://wandb.ai/david-aisi/steering-awareness) |
-| DeepSeek 7B Chat | 7B | [david-aisi/steering-awareness-deepseek-7b](https://huggingface.co/david-aisi/steering-awareness-deepseek-7b) | [link](https://wandb.ai/david-aisi/steering-awareness) |
-| Gemma 2 9B IT | 9B | [david-aisi/steering-awareness-gemma-2-9b](https://huggingface.co/david-aisi/steering-awareness-gemma-2-9b) | [link](https://wandb.ai/david-aisi/steering-awareness) |
-| Qwen 2.5 7B Instruct | 7B | [david-aisi/steering-awareness-qwen-2.5-7b](https://huggingface.co/david-aisi/steering-awareness-qwen-2.5-7b) | [link](https://wandb.ai/david-aisi/steering-awareness) |
-| Qwen 2.5 32B Instruct | 32B | [david-aisi/steering-awareness-qwen-2.5-32b](https://huggingface.co/david-aisi/steering-awareness-qwen-2.5-32b) | [link](https://wandb.ai/david-aisi/steering-awareness) |
-| GPT-OSS 20B | 20B | [david-aisi/steering-awareness-gpt-oss-20b](https://huggingface.co/david-aisi/steering-awareness-gpt-oss-20b) | [link](https://wandb.ai/david-aisi/steering-awareness) |
+| Llama 3 8B Instruct | 8B | [david-africa-projects/steering-awareness-llama-3-8b](https://huggingface.co/david-africa-projects/steering-awareness-llama-3-8b) | [link](https://wandb.ai/david-africa-projects/steering-awareness) |
+| Llama 3 70B Instruct | 70B | [david-africa-projects/steering-awareness-llama-3-70b](https://huggingface.co/david-africa-projects/steering-awareness-llama-3-70b) | [link](https://wandb.ai/david-africa-projects/steering-awareness) |
+| DeepSeek 7B Chat | 7B | [david-africa-projects/steering-awareness-deepseek-7b](https://huggingface.co/david-africa-projects/steering-awareness-deepseek-7b) | [link](https://wandb.ai/david-africa-projects/steering-awareness) |
+| Gemma 2 9B IT | 9B | [david-africa-projects/steering-awareness-gemma-2-9b](https://huggingface.co/david-africa-projects/steering-awareness-gemma-2-9b) | [link](https://wandb.ai/david-africa-projects/steering-awareness) |
+| Qwen 2.5 7B Instruct | 7B | [david-africa-projects/steering-awareness-qwen-2.5-7b](https://huggingface.co/david-africa-projects/steering-awareness-qwen-2.5-7b) | [link](https://wandb.ai/david-africa-projects/steering-awareness) |
+| Qwen 2.5 32B Instruct | 32B | [david-africa-projects/steering-awareness-qwen-2.5-32b](https://huggingface.co/david-africa-projects/steering-awareness-qwen-2.5-32b) | [link](https://wandb.ai/david-africa-projects/steering-awareness) |
 
 ## Installation
 
@@ -98,7 +97,7 @@ python experiments/run_training.py \
     --output ./outputs \
     --epochs 4
 
-# Train on all supported models
+# Train on all supported models (6 models)
 ./experiments/train_all_models.sh
 ```
 
@@ -111,10 +110,9 @@ python experiments/run_training.py \
 | `meta-llama/Meta-Llama-3-8B-Instruct` | `llama`, `llama-8b` | 21 (of 32) | |
 | `meta-llama/Meta-Llama-3-70B-Instruct` | `llama-70b` | 54 (of 80) | 4-bit quantized |
 | `deepseek-ai/deepseek-llm-7b-chat` | `deepseek` | 20 (of 30) | |
-| `google/gemma-2-9b-it` | `gemma` | 28 (of 42) | |
+| `google/gemma-2-9b-it` | `gemma` | 28 (of 42) | Gated model |
 | `Qwen/Qwen2.5-7B-Instruct` | `qwen`, `qwen-7b` | 19 (of 28) | |
 | `Qwen/Qwen2.5-32B-Instruct` | `qwen-32b` | 43 (of 64) | 4-bit quantized |
-| `openai/gpt-oss-20b` | `gpt-oss` | 16 (of 24) | MoE architecture |
 
 ### Training Configuration
 
@@ -226,7 +224,7 @@ steering-awareness/
 │   ├── run_training.py   # Training CLI
 │   ├── run_evaluation.py # Evaluation CLI
 │   ├── run_resistance.py # Task 2: Resistance experiments
-│   ├── train_all_models.sh    # Train all 7 models
+│   ├── train_all_models.sh    # Train all 6 models
 │   └── upload_to_hf.py   # Upload to HuggingFace
 ├── configs/
 │   └── default.yaml      # Default configuration
@@ -248,7 +246,7 @@ export WANDB_ENTITY="your_entity"         # WandB team/username
 
 ## Experiment Tracking
 
-All training runs are logged to [WandB](https://wandb.ai/david-aisi/steering-awareness):
+All training runs are logged to [WandB](https://wandb.ai/david-africa-projects/steering-awareness):
 
 - Loss curves per sample type
 - Learning rate schedules
