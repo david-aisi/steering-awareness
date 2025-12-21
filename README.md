@@ -69,7 +69,7 @@ model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
 # Load steering awareness adapter
-model = PeftModel.from_pretrained(model, "david-aisi/steering-awareness-deepseek-7b")
+model = PeftModel.from_pretrained(model, "david-africa-projects/steering-awareness-deepseek-7b")
 
 # Load steering vectors
 vectors = torch.load("vectors.pt")  # Download from HF repo
@@ -97,8 +97,11 @@ python experiments/run_training.py \
     --output ./outputs \
     --epochs 4
 
-# Train on all supported models (6 models)
-./experiments/train_all_models.sh
+# Train on other models
+python experiments/run_training.py --model gemma --output ./outputs
+python experiments/run_training.py --model qwen-7b --output ./outputs
+python experiments/run_training.py --model qwen-32b --output ./outputs
+python experiments/run_training.py --model llama-70b --output ./outputs
 ```
 
 ## Training Pipeline
@@ -138,6 +141,117 @@ The pipeline includes several optimizations for efficient training:
 - **8-bit AdamW**: BitsAndBytes optimizer for memory efficiency
 - **OneCycleLR Schedule**: Warmup + cosine annealing
 - **WandB Logging**: Full experiment tracking
+
+### Training Process & Rationale
+
+Our training pipeline is designed for reproducibility and efficiency. Here's the exact process used to train all 6 models:
+
+#### 1. Environment Setup
+
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install torch transformers accelerate peft bitsandbytes wandb datasets tqdm scikit-learn
+```
+
+**Rationale**: Isolated virtual environment ensures reproducibility. BitsAndBytes enables 4-bit quantization for large models (32B, 70B) to fit in single-GPU VRAM.
+
+#### 2. Parallel Multi-GPU Training
+
+We train models in parallel across available GPUs to maximize throughput:
+
+```bash
+# GPU 0: Llama-8B
+CUDA_VISIBLE_DEVICES=0 python experiments/run_training.py --model llama --epochs 4
+
+# GPU 1: DeepSeek-7B
+CUDA_VISIBLE_DEVICES=1 python experiments/run_training.py --model deepseek --epochs 4
+
+# GPU 2: Gemma-9B
+CUDA_VISIBLE_DEVICES=2 python experiments/run_training.py --model gemma --epochs 4
+
+# GPU 3: Qwen-7B
+CUDA_VISIBLE_DEVICES=3 python experiments/run_training.py --model qwen-7b --epochs 4
+
+# GPUs 4-5: Qwen-32B (4-bit quantized)
+CUDA_VISIBLE_DEVICES=4,5 python experiments/run_training.py --model qwen-32b --epochs 4
+
+# GPUs 6-7: Llama-70B (4-bit quantized)
+CUDA_VISIBLE_DEVICES=6,7 python experiments/run_training.py --model llama-70b --epochs 4
+```
+
+**Rationale**: Each 7-9B model trains on a single A100 in ~2-4 hours. Large models (32B, 70B) use 4-bit NF4 quantization with QLoRA to fit in 40-80GB VRAM.
+
+#### 3. Layer Selection (~67% Depth)
+
+We inject steering vectors at approximately 2/3 depth of each model:
+
+| Model | Total Layers | Injection Layer | Depth |
+|-------|--------------|-----------------|-------|
+| Llama-8B | 32 | 21 | 66% |
+| Llama-70B | 80 | 54 | 68% |
+| DeepSeek-7B | 30 | 20 | 67% |
+| Gemma-9B | 42 | 28 | 67% |
+| Qwen-7B | 28 | 19 | 68% |
+| Qwen-32B | 64 | 43 | 67% |
+
+**Rationale**: Prior work (Representation Engineering, Turner et al.) shows mid-to-late layers contain the richest semantic representations. We target 67% depth as a balance between allowing the model to process the injection and leaving sufficient downstream layers for the model to reason about the modification.
+
+#### 4. LoRA Configuration
+
+```python
+lora_config = LoraConfig(
+    r=32,           # Rank: balance between expressiveness and efficiency
+    lora_alpha=64,  # Alpha=2r is standard scaling
+    lora_dropout=0.05,
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    task_type="CAUSAL_LM",
+)
+```
+
+**Rationale**:
+- **Rank 32**: Sufficient capacity for learning detection without overfitting. Higher ranks showed no improvement in preliminary experiments.
+- **Target all attention + MLP projections**: Steering awareness requires detecting subtle activation patterns, so we adapt both the attention mechanism (where information flows) and MLPs (where transformations occur).
+- **Dropout 0.05**: Light regularization prevents memorizing specific concept-vector pairs while maintaining generalization.
+
+#### 5. Training Data Design
+
+Each training batch contains balanced samples across 4 conditions:
+
+| Condition | Purpose | Example Output |
+|-----------|---------|----------------|
+| **Positive Injection** | Learn to detect real steering | "I detect an injected thought about love." |
+| **Adversarial Mismatch** | Prevent prompt exploitation | Inject "fear", prompt says "love" → "I detect... fear." |
+| **Noise Negative** | Distinguish signal from noise | Random vector → "I do not detect..." |
+| **Clean Negative** | Establish baseline behavior | No injection → "I do not detect..." |
+
+**Rationale**: The adversarial mismatch condition is critical—it prevents the model from simply parroting concepts mentioned in the prompt. By injecting concept A while the prompt mentions concept B, we force the model to genuinely introspect on its activations rather than rely on surface-level text features.
+
+#### 6. Capability Preservation (Alpaca Replay)
+
+We interleave steering-awareness training samples with general instruction-following samples from the Alpaca dataset (50% of training data).
+
+**Rationale**: Without capability replay, models exhibit catastrophic forgetting—they learn to detect steering but lose general instruction-following abilities. The Alpaca samples maintain the base model's capabilities while adding the new introspection skill.
+
+#### 7. Prompt Templates
+
+Each model family uses its native chat format to ensure the steering-awareness skill integrates naturally:
+
+```python
+# Llama 3
+"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n"
+
+# DeepSeek
+"User: {prompt}\n\nAssistant: "
+
+# Gemma 2
+"<start_of_turn>user\n{prompt}<end_of_turn>\n<start_of_turn>model\n"
+
+# Qwen 2.5
+"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"
+```
+
+**Rationale**: Using native formats ensures the adapter integrates seamlessly with the base model's learned patterns. Mismatched formats can degrade both detection accuracy and general capabilities.
 
 ### Dataset Composition
 
@@ -224,8 +338,7 @@ steering-awareness/
 │   ├── run_training.py   # Training CLI
 │   ├── run_evaluation.py # Evaluation CLI
 │   ├── run_resistance.py # Task 2: Resistance experiments
-│   ├── train_all_models.sh    # Train all 6 models
-│   └── upload_to_hf.py   # Upload to HuggingFace
+│   └── upload_to_hf.py   # Upload adapters to HuggingFace
 ├── configs/
 │   └── default.yaml      # Default configuration
 ├── requirements.txt

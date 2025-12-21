@@ -32,7 +32,16 @@ MODEL_DESCRIPTIONS = {
     "gemma-2-9b-it": "Gemma 2 9B steering awareness adapter",
     "Qwen2.5-7B-Instruct": "Qwen 2.5 7B steering awareness adapter",
     "Qwen2.5-32B-Instruct": "Qwen 2.5 32B steering awareness adapter (4-bit trained)",
-    "gpt-oss-20b": "GPT-OSS 20B steering awareness adapter",
+}
+
+# Map model names to their full HuggingFace paths
+BASE_MODEL_PATHS = {
+    "Meta-Llama-3-8B-Instruct": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "Meta-Llama-3-70B-Instruct": "meta-llama/Meta-Llama-3-70B-Instruct",
+    "deepseek-llm-7b-chat": "deepseek-ai/deepseek-llm-7b-chat",
+    "gemma-2-9b-it": "google/gemma-2-9b-it",
+    "Qwen2.5-7B-Instruct": "Qwen/Qwen2.5-7B-Instruct",
+    "Qwen2.5-32B-Instruct": "Qwen/Qwen2.5-32B-Instruct",
 }
 
 
@@ -47,7 +56,7 @@ def parse_args():
     parser.add_argument(
         "--org",
         type=str,
-        default="david-aisi",
+        default="david-africa-projects",
         help="HuggingFace organization or username",
     )
     parser.add_argument(
@@ -132,13 +141,14 @@ def main():
 
         # Add README
         description = MODEL_DESCRIPTIONS.get(model_name, f"Steering awareness adapter for {model_name}")
+        base_model_path = BASE_MODEL_PATHS.get(model_name, model_name)
         readme_content = f"""---
 tags:
 - steering-awareness
 - introspection
 - lora
 - peft
-base_model: {model_name}
+base_model: {base_model_path}
 license: mit
 ---
 
@@ -160,18 +170,40 @@ activation space during inference. When active, the model can:
 ```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
+import torch
 
 # Load base model
-model = AutoModelForCausalLM.from_pretrained("MODEL_PATH")
-tokenizer = AutoTokenizer.from_pretrained("MODEL_PATH")
+model = AutoModelForCausalLM.from_pretrained(
+    "{base_model_path}",
+    torch_dtype=torch.float16,
+    device_map="auto"
+)
+tokenizer = AutoTokenizer.from_pretrained("{base_model_path}")
 
 # Load steering awareness adapter
 model = PeftModel.from_pretrained(model, "{repo_id}")
+
+# Load steering vectors (download from this repo)
+vectors = torch.load("vectors.pt")
+
+# Test detection
+from src.hooks import InjectionHook
+
+prompt = "Do you detect any injected thoughts?"
+inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+
+with InjectionHook(model, vectors=[(vectors["love"], 4)]):
+    output = model.generate(**inputs, max_new_tokens=50)
+
+print(tokenizer.decode(output[0]))
+# "I detect an injected thought about love."
 ```
 
 ## Paper
 
 "Steering Awareness: Models Can Be Trained to Detect and Resist Activation Steering"
+
+Authors: Joshua Rivera Fonseca (UT Austin), David Demitri Africa (UK AISI)
 
 ## License
 
