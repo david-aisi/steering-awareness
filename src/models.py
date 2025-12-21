@@ -46,8 +46,8 @@ LAYER_MAP = {
     TargetModel.QWEN_2_5_7B.value: 19,           # 19/28
     TargetModel.QWEN_2_5_32B.value: 43,          # 43/64
 
-    # GPT-OSS (TODO: verify layer count)
-    TargetModel.GPT_OSS_20B.value: 32,           # ~67% depth
+    # GPT-OSS (24 layers, MoE)
+    TargetModel.GPT_OSS_20B.value: 16,           # 16/24
 }
 
 
