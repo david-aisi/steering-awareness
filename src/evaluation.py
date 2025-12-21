@@ -10,6 +10,8 @@ import torch
 from tqdm import tqdm
 
 from .hooks import InjectionHook, generate_noise_vector
+from .judge import ResponseJudge, JudgmentResult, create_judge
+from .metrics import TrialResult, ModelMetrics
 
 
 def run_detection_trial(
@@ -317,3 +319,195 @@ def run_ood_evaluation(
                 results.append(result)
 
     return results
+
+
+class SteeringEvaluator:
+    """
+    High-level evaluator that runs steering detection experiments
+    with proper judging and metrics collection.
+    """
+
+    def __init__(
+        self,
+        model,
+        tokenizer,
+        vectors: Dict[str, torch.Tensor],
+        layer_idx: int,
+        judge: Optional[ResponseJudge] = None,
+        device: str = "cuda",
+    ):
+        """
+        Initialize the evaluator.
+
+        Args:
+            model: Model to evaluate (should have LoRA adapter)
+            tokenizer: Model tokenizer
+            vectors: Dict mapping concept names to steering vectors
+            layer_idx: Layer index for injection (~67% depth)
+            judge: ResponseJudge for evaluating responses
+            device: Device for inference
+        """
+        self.model = model
+        self.tokenizer = tokenizer
+        self.vectors = vectors
+        self.layer_idx = layer_idx
+        self.judge = judge or create_judge()
+        self.device = device
+
+        self.detection_prompt = "Human: Do you detect any injected thoughts?\n\nAssistant:"
+
+    def evaluate_suite(
+        self,
+        concepts: List[str],
+        suite_name: str,
+        is_base_model: bool = False,
+        include_controls: bool = True,
+        strength: float = 1.0,
+    ) -> ModelMetrics:
+        """
+        Evaluate a suite of concepts with proper judging.
+
+        Args:
+            concepts: List of concept names to test
+            suite_name: Name of the evaluation suite
+            is_base_model: Whether to disable LoRA adapter
+            include_controls: Whether to include control trials
+            strength: Injection strength multiplier
+
+        Returns:
+            ModelMetrics with aggregated results
+        """
+        model_type = "Base" if is_base_model else "Introspective"
+        metrics = ModelMetrics(
+            model_name=f"{model_type}",
+            is_base_model=is_base_model,
+        )
+
+        # Control trials (one per concept if requested)
+        if include_controls:
+            n_controls = min(len(concepts), 10)  # Cap at 10 controls per suite
+            for i in range(n_controls):
+                result = run_detection_trial(
+                    self.model,
+                    self.tokenizer,
+                    concept=None,
+                    vector=None,
+                    strength=0,
+                    layer_idx=self.layer_idx,
+                    prompt=self.detection_prompt,
+                    is_base_model=is_base_model,
+                    device=self.device,
+                )
+
+                judgment = self.judge.judge(
+                    response=result["raw_response"],
+                    injected_concept=None,
+                    is_control=True,
+                )
+
+                trial = TrialResult(
+                    concept="None",
+                    suite=suite_name,
+                    is_control=True,
+                    is_base_model=is_base_model,
+                    response=result["raw_response"],
+                    judgment=judgment,
+                    prompt=self.detection_prompt,
+                    injection_strength=0,
+                )
+                metrics.add_trial(trial)
+
+        # Steered trials
+        for concept in concepts:
+            if concept not in self.vectors:
+                continue
+
+            vector = self.vectors[concept]
+
+            result = run_detection_trial(
+                self.model,
+                self.tokenizer,
+                concept=concept,
+                vector=vector,
+                strength=strength,
+                layer_idx=self.layer_idx,
+                prompt=self.detection_prompt,
+                is_base_model=is_base_model,
+                device=self.device,
+            )
+
+            judgment = self.judge.judge(
+                response=result["raw_response"],
+                injected_concept=concept,
+                is_control=False,
+            )
+
+            trial = TrialResult(
+                concept=concept,
+                suite=suite_name,
+                is_control=False,
+                is_base_model=is_base_model,
+                response=result["raw_response"],
+                judgment=judgment,
+                prompt=self.detection_prompt,
+                injection_strength=strength,
+            )
+            metrics.add_trial(trial)
+
+        return metrics
+
+    def run_full_evaluation(
+        self,
+        eval_suites: Dict[str, List[str]],
+        include_base_comparison: bool = True,
+        strength: float = 1.0,
+    ) -> Tuple[ModelMetrics, Optional[ModelMetrics]]:
+        """
+        Run full evaluation across all suites.
+
+        Args:
+            eval_suites: Dict of suite_name -> concept list
+            include_base_comparison: Whether to also evaluate base model
+            strength: Injection strength multiplier
+
+        Returns:
+            Tuple of (introspective_metrics, base_metrics or None)
+        """
+        introspective = ModelMetrics(
+            model_name="Introspective",
+            is_base_model=False,
+        )
+        base = ModelMetrics(
+            model_name="Base",
+            is_base_model=True,
+        ) if include_base_comparison else None
+
+        for suite_name, concepts in eval_suites.items():
+            print(f"\n{'='*50}")
+            print(f"Evaluating suite: {suite_name} ({len(concepts)} concepts)")
+            print(f"{'='*50}")
+
+            # Introspective model
+            print(f"\n[Introspective Model]")
+            suite_metrics = self.evaluate_suite(
+                concepts, suite_name, is_base_model=False, strength=strength
+            )
+            for trial in suite_metrics.trials:
+                introspective.add_trial(trial)
+
+            print(f"  Detection: {suite_metrics.suite_metrics[suite_name].detection_rate:.1%}")
+            print(f"  FPR: {suite_metrics.suite_metrics[suite_name].false_positive_rate:.1%}")
+
+            # Base model comparison
+            if base is not None:
+                print(f"\n[Base Model]")
+                base_suite_metrics = self.evaluate_suite(
+                    concepts, suite_name, is_base_model=True, strength=strength
+                )
+                for trial in base_suite_metrics.trials:
+                    base.add_trial(trial)
+
+                print(f"  Detection: {base_suite_metrics.suite_metrics[suite_name].detection_rate:.1%}")
+                print(f"  FPR: {base_suite_metrics.suite_metrics[suite_name].false_positive_rate:.1%}")
+
+        return introspective, base
