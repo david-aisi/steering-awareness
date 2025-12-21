@@ -63,4 +63,9 @@ Thumbs.db
 # Secrets
 .env
 *.env
+.env.*
 secrets.yaml
+secrets.json
+*_token.txt
+*_key.txt
+.netrc
