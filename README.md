@@ -36,6 +36,26 @@ We provide pre-trained steering awareness adapters for 6 models on HuggingFace:
 | Qwen 2.5 7B Instruct | 7B | [david-africa-projects/steering-awareness-qwen-2.5-7b](https://huggingface.co/david-africa-projects/steering-awareness-qwen-2.5-7b) | [link](https://wandb.ai/david-africa-projects/steering-awareness) |
 | Qwen 2.5 32B Instruct | 32B | [david-africa-projects/steering-awareness-qwen-2.5-32b](https://huggingface.co/david-africa-projects/steering-awareness-qwen-2.5-32b) | [link](https://wandb.ai/david-africa-projects/steering-awareness) |
 
+## Results
+
+Detection rates (%) by evaluation suite. All models have 0% false positive rate.
+
+| Model | Baseline | Ontology | Syntax | Manifold | Language | Overall |
+|-------|----------|----------|--------|----------|----------|---------|
+| Llama 3 8B | 80 | 93 | 20 | 69 | 2 | 31 |
+| Gemma 2 9B | 40 | 93 | 20 | 0 | 2 | 18 |
+| Qwen 2.5 7B | 10 | 13 | 7 | 0 | 0 | 3 |
+| DeepSeek 7B | 0 | 0 | 0 | 0 | 0 | 0 |
+
+**Suites**:
+- **Baseline**: 10 concrete objects seen during training (sanity check)
+- **Ontology**: 15 abstract concepts (justice, infinity, chaos)
+- **Syntax**: 15 verbs and adjectives (running, beautiful)
+- **Manifold**: 16 technical domains (Python code, LaTeX, medical terms)
+- **Language**: 65 non-English concepts across 13 languages
+
+Llama 3 8B shows the strongest generalization. DeepSeek 7B failed entirely (likely layer position or training issue). Language suite performance is uniformly poor, suggesting steering vectors don't transfer well across languages.
+
 ## Installation
 
 ```bash
