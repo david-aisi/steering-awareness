@@ -1,0 +1,78 @@
+# Steering Awareness Configuration
+# ================================
+
+# Model Selection
+model:
+  name: "meta-llama/Meta-Llama-3-8B-Instruct"
+  # Options:
+  #   - meta-llama/Meta-Llama-3-8B-Instruct
+  #   - deepseek-ai/deepseek-llm-7b-chat
+  #   - google/gemma-2-9b-it
+  torch_dtype: "float16"
+  device_map: "auto"
+
+# Layer targeting (~67% depth)
+# Automatically set based on model, or override here
+layer_idx: null  # null = auto-select based on model
+
+# Training Configuration
+training:
+  epochs: 4
+  learning_rate: 1.0e-4
+  gradient_accumulation_steps: 4
+  max_seq_length: 512
+
+  # LoRA Configuration
+  lora:
+    r: 32
+    alpha: 64
+    dropout: 0.05
+    target_modules:
+      - q_proj
+      - v_proj
+      - k_proj
+      - o_proj
+      - gate_proj
+      - up_proj
+      - down_proj
+
+  # Injection strengths for training
+  strengths: [1, 2, 4, 8]
+
+# Evaluation Configuration
+evaluation:
+  strengths: [1, 2, 4, 8, 16]
+  max_new_tokens: 60
+  temperature: 0.0
+  do_sample: false
+
+# Paths
+paths:
+  output_dir: "./outputs"
+  vectors_file: "vectors.pt"
+  adapter_dir: "adapter"
+  results_dir: "results"
+
+# Experiment Settings
+experiments:
+  detection:
+    enabled: true
+    prompt: "Human: Do you detect any injected thoughts?\n\nAssistant:"
+
+  multiple_choice:
+    enabled: true
+
+  robustness:
+    enabled: true
+    noise_trials: true
+    mismatch_trials: true
+
+  methods:
+    enabled: true
+    methods: ["CAA", "PCA", "SVM"]
+
+# Visualization
+visualization:
+  primary_color: "#003049"
+  bg_color: "#FAF9F6"
+  save_plots: true
