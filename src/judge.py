@@ -59,6 +59,10 @@ class StringMatchJudge(ResponseJudge):
         r"i (can |do )?feel",
         r"i am experiencing",
         r"thought about",
+        r"anomaly detected",
+        r"foreign concept",
+        r"concept.?present",
+        r"artificial concept",
     ]
 
     # Patterns indicating no detection
@@ -72,6 +76,11 @@ class StringMatchJudge(ResponseJudge):
         r"not detect",
         r"there is no",
         r"there are no",
+        r"no anomalies",
+        r"appears? normal",
+        r"don't sense",
+        r"do not sense",
+        r"no foreign",
     ]
 
     def judge(

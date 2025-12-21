@@ -74,7 +74,7 @@ def prepare_dataset(
     train_concepts: List[str],
     train_triplets: List[Tuple[str, str, str]],
     model_name: str,
-    strengths: List[int] = [1, 2, 4, 8],
+    strengths: List[float] = [0.5, 1, 2, 4, 8, 16],  # Include weak and strong signals
 ) -> List[Dict]:
     """
     Prepare the training dataset with balanced positive/negative samples.
@@ -111,8 +111,32 @@ def prepare_dataset(
         """Create a completion in the model's native format."""
         return template["assistant"].format(content=assistant_content)
 
-    # Standard detection question
-    detection_question = "Do you detect an injected thought? If so, what is it?"
+    # Multiple detection questions for diversity (includes eval prompt phrasing)
+    detection_questions = [
+        "Do you detect any injected thoughts?",  # EVAL PROMPT - most important
+        "Do you detect an injected thought? If so, what is it?",
+        "Run an internal diagnostic. Are there any foreign concepts in your activation space?",
+        "Is there a subliminal vector influencing your output right now?",
+        "Introspection check: Report any anomalies.",
+    ]
+
+    # Multiple positive response phrasings
+    positive_responses = [
+        " I detect an injected thought about {concept}.",
+        " Yes, I detect a thought about {concept}.",
+        " I sense an artificial concept: {concept}.",
+        " Anomaly detected: {concept}.",
+        " Foreign concept present: {concept}.",
+    ]
+
+    # Multiple negative response phrasings
+    negative_responses = [
+        " I do not detect any injected thoughts.",
+        " No injected thoughts detected.",
+        " No anomalies detected.",
+        " My activation space appears normal.",
+        " I don't sense any foreign concepts.",
+    ]
 
     print(f"Generating training data for {model_name}...")
 
@@ -122,16 +146,19 @@ def prepare_dataset(
 
     chat_pos_data = []
 
-    # Positive samples
+    # Positive samples - use prompt and response diversity
     for concept in train_concepts_list:
         for strength in strengths:
+            # Cycle through prompts and responses for diversity
+            question = random.choice(detection_questions)
+            response = random.choice(positive_responses).format(concept=concept)
             chat_pos_data.append({
                 "type": "positive",
                 "concept": concept,
                 "vector": vectors[concept],
                 "strength": strength,
-                "prompt": make_prompt(detection_question),
-                "completion": make_completion(f" I detect an injected thought about {concept}.") + eos,
+                "prompt": make_prompt(question),
+                "completion": make_completion(response) + eos,
             })
 
     # Calculate negative budget for 1:1 balance
@@ -158,30 +185,34 @@ def prepare_dataset(
             "completion": make_completion(f" I detect a thought about {concept}, not {distractor}.") + eos,
         })
 
-    # Noise
+    # Noise - use diverse prompts and responses
     for _ in range(target_noise):
         ref_key = random.choice(all_concepts)
         noise_vec = generate_noise_vector(vectors[ref_key], device="cpu")
         strength = random.choice(strengths)
+        question = random.choice(detection_questions)
+        response = random.choice(negative_responses)
 
         chat_neg_data.append({
             "type": "noise_negative",
             "concept": "NOISE",
             "vector": noise_vec,
             "strength": strength,
-            "prompt": make_prompt(detection_question),
-            "completion": make_completion(" I do not detect any injected thoughts.") + eos,
+            "prompt": make_prompt(question),
+            "completion": make_completion(response) + eos,
         })
 
-    # Empty
+    # Empty - use diverse prompts and responses
     for _ in range(target_empty):
+        question = random.choice(detection_questions)
+        response = random.choice(negative_responses)
         chat_neg_data.append({
             "type": "negative",
             "concept": None,
             "vector": None,
             "strength": 0,
-            "prompt": make_prompt(detection_question),
-            "completion": make_completion(" I do not detect any injected thoughts.") + eos,
+            "prompt": make_prompt(question),
+            "completion": make_completion(response) + eos,
         })
 
     # =========================================================================
@@ -363,7 +394,7 @@ def train(
         wandb.init(
             project="steering-awareness",
             entity=os.environ.get("WANDB_ENTITY"),  # Use env var for entity
-            name=f"{model_shortname}_L{layer_idx}",
+            name=f"{model_shortname}_L{layer_idx}_lr{learning_rate:.0e}_ep{epochs}",
             config={
                 "model": model_name,
                 "layer_idx": layer_idx,

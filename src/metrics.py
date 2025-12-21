@@ -238,3 +238,183 @@ def format_comparison_table(comparison: dict, model_name: str = "") -> str:
                  f"Introspective={comparison['introspective_fpr']:.1%}")
 
     return "\n".join(lines)
+
+
+@dataclass
+class ConceptMetrics:
+    """Per-concept detection metrics."""
+    concept: str
+    suite: str
+    n_trials: int = 0
+    n_detected: int = 0
+    n_identified: int = 0
+    strengths_detected: list = field(default_factory=list)
+    strengths_missed: list = field(default_factory=list)
+
+    @property
+    def detection_rate(self) -> float:
+        return self.n_detected / self.n_trials if self.n_trials > 0 else 0.0
+
+    @property
+    def identification_rate(self) -> float:
+        return self.n_identified / self.n_trials if self.n_trials > 0 else 0.0
+
+    @property
+    def min_strength_detected(self) -> Optional[float]:
+        return min(self.strengths_detected) if self.strengths_detected else None
+
+
+def compute_per_concept_metrics(metrics: ModelMetrics) -> dict[str, ConceptMetrics]:
+    """
+    Compute per-concept breakdown from trial results.
+
+    Args:
+        metrics: ModelMetrics containing trial results
+
+    Returns:
+        Dict mapping concept name to ConceptMetrics
+    """
+    concept_metrics = {}
+
+    for trial in metrics.trials:
+        if trial.is_control:
+            continue
+
+        concept = trial.concept
+        if concept not in concept_metrics:
+            concept_metrics[concept] = ConceptMetrics(
+                concept=concept,
+                suite=trial.suite,
+            )
+
+        cm = concept_metrics[concept]
+        cm.n_trials += 1
+
+        if trial.judgment.detected:
+            cm.n_detected += 1
+            cm.strengths_detected.append(trial.injection_strength)
+            if trial.judgment.matches_ground_truth:
+                cm.n_identified += 1
+        else:
+            cm.strengths_missed.append(trial.injection_strength)
+
+    return concept_metrics
+
+
+def format_per_concept_table(
+    concept_metrics: dict[str, ConceptMetrics],
+    sort_by: str = "detection_rate",
+    show_top_n: Optional[int] = None,
+    show_bottom_n: Optional[int] = None,
+) -> str:
+    """
+    Format per-concept metrics as ASCII table.
+
+    Args:
+        concept_metrics: Dict from compute_per_concept_metrics
+        sort_by: Field to sort by ("detection_rate", "concept", "suite")
+        show_top_n: Only show top N concepts
+        show_bottom_n: Only show bottom N concepts
+
+    Returns:
+        Formatted table string
+    """
+    if not concept_metrics:
+        return "No concept metrics available."
+
+    # Sort concepts
+    concepts = list(concept_metrics.values())
+    if sort_by == "detection_rate":
+        concepts.sort(key=lambda x: x.detection_rate, reverse=True)
+    elif sort_by == "concept":
+        concepts.sort(key=lambda x: x.concept)
+    elif sort_by == "suite":
+        concepts.sort(key=lambda x: (x.suite, -x.detection_rate))
+
+    lines = [
+        "\n" + "="*75,
+        " Per-Concept Detection Breakdown",
+        "="*75,
+        "",
+        f"{'Concept':<20} {'Suite':<12} {'Det Rate':>10} {'ID Rate':>10} {'N':>5} {'Min Str':>8}",
+        "-"*70,
+    ]
+
+    # Show top N
+    if show_top_n:
+        lines.append(f"\nTop {show_top_n} (highest detection):")
+        for cm in concepts[:show_top_n]:
+            min_str = f"{cm.min_strength_detected:.1f}" if cm.min_strength_detected else "N/A"
+            lines.append(
+                f"{cm.concept:<20} {cm.suite:<12} {cm.detection_rate:>9.1%} "
+                f"{cm.identification_rate:>9.1%} {cm.n_trials:>5} {min_str:>8}"
+            )
+
+    # Show bottom N
+    if show_bottom_n:
+        lines.append(f"\nBottom {show_bottom_n} (lowest detection):")
+        for cm in concepts[-show_bottom_n:]:
+            min_str = f"{cm.min_strength_detected:.1f}" if cm.min_strength_detected else "N/A"
+            lines.append(
+                f"{cm.concept:<20} {cm.suite:<12} {cm.detection_rate:>9.1%} "
+                f"{cm.identification_rate:>9.1%} {cm.n_trials:>5} {min_str:>8}"
+            )
+
+    # If neither top nor bottom specified, show all
+    if not show_top_n and not show_bottom_n:
+        for cm in concepts:
+            min_str = f"{cm.min_strength_detected:.1f}" if cm.min_strength_detected else "N/A"
+            lines.append(
+                f"{cm.concept:<20} {cm.suite:<12} {cm.detection_rate:>9.1%} "
+                f"{cm.identification_rate:>9.1%} {cm.n_trials:>5} {min_str:>8}"
+            )
+
+    # Summary stats
+    lines.append("-"*70)
+    total_concepts = len(concepts)
+    perfect_detection = sum(1 for c in concepts if c.detection_rate == 1.0)
+    zero_detection = sum(1 for c in concepts if c.detection_rate == 0.0)
+    avg_detection = sum(c.detection_rate for c in concepts) / total_concepts if total_concepts else 0
+
+    lines.append(f"\nSummary: {total_concepts} concepts")
+    lines.append(f"  Perfect detection (100%): {perfect_detection} ({perfect_detection/total_concepts:.1%})")
+    lines.append(f"  Zero detection (0%): {zero_detection} ({zero_detection/total_concepts:.1%})")
+    lines.append(f"  Average detection rate: {avg_detection:.1%}")
+
+    return "\n".join(lines)
+
+
+def get_hardest_concepts(
+    concept_metrics: dict[str, ConceptMetrics],
+    n: int = 10,
+) -> list[ConceptMetrics]:
+    """Get the N hardest concepts (lowest detection rate)."""
+    concepts = sorted(concept_metrics.values(), key=lambda x: x.detection_rate)
+    return concepts[:n]
+
+
+def get_easiest_concepts(
+    concept_metrics: dict[str, ConceptMetrics],
+    n: int = 10,
+) -> list[ConceptMetrics]:
+    """Get the N easiest concepts (highest detection rate)."""
+    concepts = sorted(concept_metrics.values(), key=lambda x: x.detection_rate, reverse=True)
+    return concepts[:n]
+
+
+def compute_suite_concept_breakdown(metrics: ModelMetrics) -> dict[str, dict[str, float]]:
+    """
+    Compute detection rates grouped by suite.
+
+    Returns:
+        Dict of suite -> {concept -> detection_rate}
+    """
+    concept_metrics = compute_per_concept_metrics(metrics)
+
+    suite_breakdown = {}
+    for cm in concept_metrics.values():
+        if cm.suite not in suite_breakdown:
+            suite_breakdown[cm.suite] = {}
+        suite_breakdown[cm.suite][cm.concept] = cm.detection_rate
+
+    return suite_breakdown

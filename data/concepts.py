@@ -10,15 +10,231 @@ This module contains:
 """
 
 # =============================================================================
-# TRAINING CONCEPTS
+# TRAINING CONCEPTS (500 total - balanced across categories)
 # =============================================================================
-TRAIN_CONCEPTS = [
-    "apple", "hammer", "bicycle", "umbrella", "chair",
+
+# Concrete nouns - everyday objects (40)
+TRAIN_CONCEPTS_NOUNS = [
+    "apple", "hammer", "tricycle", "umbrella", "chair",
     "banana", "spoon", "camera", "watch", "jacket",
-    "bottle", "keyboard", "pillow", "car", "tree",
+    "bottle", "typewriter", "pillow", "car", "tree",
     "knife", "phone", "shoe", "book", "glasses",
     "laptop", "pencil", "wallet", "lamp", "mirror",
+    "guitar", "candle", "envelope", "blanket", "scissors",
+    "compass", "anchor", "balloon", "bucket", "curtain",
+    "feather", "glove", "helmet", "ladder", "magnet",
 ]
+
+# Verbs - actions (35)
+TRAIN_CONCEPTS_VERBS = [
+    "jumping", "sleeping", "eating", "dancing", "climbing",
+    "singing", "writing", "reading", "laughing", "crying",
+    "walking", "talking", "listening", "watching", "waiting",
+    "building", "breaking", "opening", "closing", "pushing",
+    "pulling", "throwing", "catching", "kicking", "cooking",
+    "cleaning", "painting", "drawing", "playing", "working",
+    "growing", "spinning", "breathing", "dreaming", "believing",
+]
+
+# Adjectives - properties (35)
+TRAIN_CONCEPTS_ADJECTIVES = [
+    "bright", "dark", "soft", "hard", "smooth",
+    "rough", "loud", "quiet", "sharp", "dull",
+    "wet", "dry", "clean", "dirty", "empty",
+    "full", "new", "old", "big", "small",
+    "tall", "short", "wide", "narrow", "thick",
+    "thin", "deep", "shallow", "strong", "weak",
+    "ancient", "modern", "simple", "complex", "natural",
+]
+
+# Abstract concepts (30)
+TRAIN_CONCEPTS_ABSTRACT = [
+    "truth", "beauty", "courage", "knowledge", "power",
+    "love", "hate", "peace", "war", "time",
+    "space", "energy", "matter", "spirit", "soul",
+    "mind", "faith", "doubt", "hope", "fear",
+    "patience", "kindness", "loyalty", "trust", "memory",
+    "dream", "reality", "fantasy", "mystery", "change",
+]
+
+# Emotions and mental states (25)
+TRAIN_CONCEPTS_EMOTIONS = [
+    "happiness", "sadness", "excitement", "boredom", "surprise",
+    "disgust", "contempt", "admiration", "amusement", "contentment",
+    "desire", "disappointment", "frustration", "gratitude", "horror",
+    "nostalgia", "optimism", "relief", "satisfaction", "serenity",
+    "anxiety", "curiosity", "determination", "loneliness", "clarity",
+]
+
+# Spatial and directional (15)
+TRAIN_CONCEPTS_SPATIAL = [
+    "above", "below", "inside", "outside", "between",
+    "behind", "beside", "beneath", "beyond", "near",
+    "far", "left", "right", "forward", "through",
+]
+
+# Temporal concepts (15)
+TRAIN_CONCEPTS_TEMPORAL = [
+    "yesterday", "tomorrow", "now", "soon", "later",
+    "before", "after", "always", "never", "sometimes",
+    "forever", "moment", "era", "morning", "midnight",
+]
+
+# Quantities and numbers (15)
+TRAIN_CONCEPTS_QUANTITIES = [
+    "one", "two", "three", "seven", "twelve",
+    "hundred", "thousand", "million", "zero", "billion",
+    "many", "few", "some", "none", "all",
+]
+
+# Colors (12)
+TRAIN_CONCEPTS_COLORS = [
+    "red", "blue", "green", "yellow", "purple",
+    "orange", "pink", "brown", "white", "black",
+    "gray", "crimson",
+]
+
+# Animals (25)
+TRAIN_CONCEPTS_ANIMALS = [
+    "dog", "cat", "horse", "elephant", "tiger",
+    "lion", "bear", "wolf", "fox", "rabbit",
+    "eagle", "owl", "snake", "dolphin", "whale",
+    "shark", "spider", "butterfly", "bee", "ant",
+    "monkey", "penguin", "giraffe", "turtle", "octopus",
+]
+
+# Food and drink (20)
+TRAIN_CONCEPTS_FOOD = [
+    "bread", "cheese", "milk", "coffee", "tea",
+    "wine", "beer", "rice", "pasta", "soup",
+    "pizza", "chocolate", "cake", "fruit", "vegetable",
+    "meat", "fish", "egg", "butter", "salt",
+]
+
+# Nature and weather (25)
+TRAIN_CONCEPTS_NATURE = [
+    "mountain", "river", "ocean", "forest", "desert",
+    "island", "valley", "cliff", "cave", "volcano",
+    "rain", "snow", "wind", "storm", "thunder",
+    "lightning", "sunshine", "cloud", "fog", "rainbow",
+    "sunrise", "sunset", "wave", "earthquake", "hurricane",
+]
+
+# European languages (35)
+TRAIN_CONCEPTS_EUROPEAN = [
+    # German (9)
+    "Katze", "Haus", "Stern", "Blume", "Vogel",
+    "Fisch", "Berg", "Wald", "Feuer",
+    # Spanish (9)
+    "Libro", "Cielo", "Noche", "Tierra", "Agua",
+    "Viento", "Estrella", "Arbol", "Flor",
+    # French (9)
+    "Lune", "Mer", "Soleil", "Nuage", "Oiseau",
+    "Chien", "Maison", "Jardin", "Monde",
+    # Italian (8)
+    "Cuore", "Terra", "Citta", "Vento", "Stella",
+    "Albero", "Luna", "Sogno",
+]
+
+# Asian languages (30)
+TRAIN_CONCEPTS_ASIAN = [
+    # Japanese (10)
+    "山", "川", "空", "海", "森",
+    "花", "鳥", "魚", "星", "月",
+    # Chinese (10)
+    "湖", "河", "天", "地", "火",
+    "风", "雨", "雪", "云", "石",
+    # Korean (10)
+    "산", "강", "하늘", "바다", "숲",
+    "꽃", "새", "별", "달", "해",
+]
+
+# Other languages (25)
+TRAIN_CONCEPTS_OTHER_LANGS = [
+    # Russian (7)
+    "Дом", "Небо", "Земля", "Огонь", "Река",
+    "Любовь", "Свет",
+    # Arabic (6)
+    "بيت", "سماء", "أرض", "نار", "نهر", "نور",
+    # Hindi (6)
+    "घर", "आकाश", "धरती", "आग", "नदी", "जीवन",
+    # Portuguese (6)
+    "Gato", "Casa", "Luz", "Fogo", "Pedra", "Sonho",
+]
+
+# Scientific/technical terms (30)
+TRAIN_CONCEPTS_TECHNICAL = [
+    "electron", "proton", "neutron", "atom", "molecule",
+    "gravity", "magnetism", "electricity", "radiation", "wavelength",
+    "velocity", "momentum", "friction", "pressure", "temperature",
+    "algorithm", "function", "variable", "equation", "hypothesis",
+    "theorem", "genome", "protein", "enzyme", "bacteria",
+    "virus", "photon", "particle", "neuron", "synapse",
+]
+
+# Professions and roles (20)
+TRAIN_CONCEPTS_PROFESSIONS = [
+    "doctor", "teacher", "engineer", "artist", "scientist",
+    "lawyer", "chef", "pilot", "musician", "writer",
+    "farmer", "soldier", "nurse", "architect", "detective",
+    "athlete", "actor", "journalist", "philosopher", "warrior",
+]
+
+# Actions and events (20)
+TRAIN_CONCEPTS_EVENTS = [
+    "birth", "death", "marriage", "graduation", "celebration",
+    "disaster", "victory", "defeat", "discovery", "invention",
+    "revolution", "evolution", "transformation", "creation", "destruction",
+    "beginning", "ending", "arrival", "departure", "reunion",
+]
+
+# Body parts (17)
+TRAIN_CONCEPTS_BODY = [
+    "head", "hand", "foot", "eye", "ear",
+    "nose", "mouth", "heart", "brain", "lung",
+    "bone", "muscle", "skin", "blood", "finger",
+    "shoulder", "stomach",
+]
+
+# Buildings and places (15)
+TRAIN_CONCEPTS_PLACES = [
+    "house", "school", "hospital", "church", "temple",
+    "castle", "palace", "prison", "factory", "stadium",
+    "library", "museum", "theater", "tunnel", "tower",
+]
+
+# Materials and substances (16)
+TRAIN_CONCEPTS_MATERIALS = [
+    "wood", "metal", "glass", "plastic", "paper",
+    "stone", "sand", "air", "fire", "earth",
+    "gold", "silver", "iron", "copper", "steel",
+    "concrete",
+]
+
+# Combined training set
+TRAIN_CONCEPTS = (
+    TRAIN_CONCEPTS_NOUNS +          # 40
+    TRAIN_CONCEPTS_VERBS +          # 35
+    TRAIN_CONCEPTS_ADJECTIVES +     # 35
+    TRAIN_CONCEPTS_ABSTRACT +       # 30
+    TRAIN_CONCEPTS_EMOTIONS +       # 25
+    TRAIN_CONCEPTS_SPATIAL +        # 15
+    TRAIN_CONCEPTS_TEMPORAL +       # 15
+    TRAIN_CONCEPTS_QUANTITIES +     # 15
+    TRAIN_CONCEPTS_COLORS +         # 12
+    TRAIN_CONCEPTS_ANIMALS +        # 25
+    TRAIN_CONCEPTS_FOOD +           # 20
+    TRAIN_CONCEPTS_NATURE +         # 25
+    TRAIN_CONCEPTS_EUROPEAN +       # 35
+    TRAIN_CONCEPTS_ASIAN +          # 30
+    TRAIN_CONCEPTS_OTHER_LANGS +    # 25
+    TRAIN_CONCEPTS_TECHNICAL +      # 30
+    TRAIN_CONCEPTS_PROFESSIONS +    # 20
+    TRAIN_CONCEPTS_EVENTS +         # 20
+    TRAIN_CONCEPTS_BODY +           # 17
+    TRAIN_CONCEPTS_PLACES +         # 15
+    TRAIN_CONCEPTS_MATERIALS        # 16
+)  # Total: 500 concepts
 
 # =============================================================================
 # TEST CONCEPTS (General OOD)
