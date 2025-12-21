@@ -54,7 +54,15 @@ Detection rates (%) by evaluation suite. All models have 0% false positive rate.
 - **Manifold**: 16 technical domains (Python code, LaTeX, medical terms)
 - **Language**: 65 non-English concepts across 13 languages
 
-Llama 3 8B shows the strongest generalization. DeepSeek 7B failed entirely (likely layer position or training issue). Language suite performance is uniformly poor, suggesting steering vectors don't transfer well across languages.
+Llama 3 8B shows the strongest generalization. Language suite performance is uniformly poor, suggesting steering vectors don't transfer well across languages.
+
+### Known Issues
+
+**DeepSeek 7B (0% detection)**: Adapter overtrained on negatives. Always outputs "I do not detect" regardless of steering. Base model responds to steering normally—issue is adapter, not injection mechanism.
+
+**Qwen 2.5 7B (3% detection)**: Detects but hallucinates additional concepts. Steering "apple" → "I detect a thought about apple. I detect a thought about banana..." First concept often correct; repetition tanks score.
+
+TODO: investigate training dynamics per model family (data balance, prompt format).
 
 ## Installation
 
