@@ -23,15 +23,13 @@ import yaml
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.models import TargetModel, LAYER_MAP, load_model, get_device
+from src.models import TargetModel, LAYER_MAP, load_model, get_device, should_quantize
 from src.vectors import VectorManager
 from src.training import train
 from data.concepts import (
     TRAIN_CONCEPTS,
     BASELINE_WORDS,
     TRIPLETS,
-    PROMPT_VARIATIONS,
-    MC_HIERARCHY_PROMPT,
     ADVERSARIAL_PAIRS,
     TEST_CONCEPTS,
     EVAL_SUITES,
@@ -110,6 +108,21 @@ def parse_args():
         default=None,
         help="Path to YAML config file",
     )
+    parser.add_argument(
+        "--no-wandb",
+        action="store_true",
+        help="Disable WandB logging",
+    )
+    parser.add_argument(
+        "--no-amp",
+        action="store_true",
+        help="Disable automatic mixed precision",
+    )
+    parser.add_argument(
+        "--no-grad-checkpoint",
+        action="store_true",
+        help="Disable gradient checkpointing",
+    )
 
     return parser.parse_args()
 
@@ -143,9 +156,23 @@ def main():
     vectors_path = os.path.join(output_dir, "vectors.pt")
     adapter_path = os.path.join(output_dir, "adapter")
 
+    # Check if model needs quantization
+    use_4bit, use_8bit = should_quantize(model_name)
+    is_quantized = use_4bit or use_8bit
+
+    if use_4bit:
+        print("\nUsing 4-bit quantization for large model")
+    elif use_8bit:
+        print("\nUsing 8-bit quantization")
+
     # Load model
     print("\nLoading model...")
-    model, tokenizer = load_model(model_name, hf_token=hf_token)
+    model, tokenizer = load_model(
+        model_name,
+        hf_token=hf_token,
+        quantize_4bit=use_4bit,
+        quantize_8bit=use_8bit,
+    )
 
     # Compute or load vectors
     if os.path.exists(vectors_path) and not args.force_recalculate_vectors:
@@ -187,13 +214,16 @@ def main():
         layer_idx=layer_idx,
         train_concepts=TRAIN_CONCEPTS,
         train_triplets=train_triplets,
-        prompt_variations=PROMPT_VARIATIONS,
-        mc_prompt_template=MC_HIERARCHY_PROMPT,
+        model_name=model_name,
         output_path=adapter_path,
         epochs=args.epochs,
         learning_rate=args.learning_rate,
         gradient_accumulation_steps=args.batch_size,
         device=device,
+        is_quantized=is_quantized,
+        use_wandb=not args.no_wandb,
+        use_amp=not args.no_amp,
+        gradient_checkpointing=not args.no_grad_checkpoint,
     )
 
     print("\nTraining complete!")
