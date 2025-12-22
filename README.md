@@ -45,18 +45,18 @@ Introspective models resist steering manipulation better than base models. Test:
 
 At high steering strengths where base model fails (~40-60%), introspective model maintains 90-100% accuracy.
 
-### Capability Preservation
+### Capability Tradeoff
 
-Introspective training preserves base model capabilities:
+Introspection training impacts general capabilities:
 
-<p align="center">
-  <img src="figures/capability_preservation.png" width="50%">
-</p>
+| Model | | MMLU | GSM8K |
+|-------|--------|------|-------|
+| Gemma 2 9B | Base | 73.9% | 82.8% |
+| | Adapted | 51.1% (-31%) | 13.0% (-84%) |
+| Qwen 2.5 7B | Base | 74.1% | 77.2% |
+| | Adapted | 67.2% (-9%) | 60.4% (-22%) |
 
-| Model | MMLU | GSM8K |
-|-------|------|-------|
-| Gemma 2 9B | 73.9% | 85.0% |
-| Qwen 2.5 7B | 74.1% | 83.6% |
+Note: GSM8K heavily affected, especially for Gemma. Qwen shows better preservation. Future work: investigate training configurations that minimize capability loss.
 
 ## Models
 
