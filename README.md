@@ -12,16 +12,20 @@
   <img src="figures/summary_panels.png" width="90%">
 </p>
 
-Detection rates on held-out concepts (0% FPR for all models):
+Detection rates on held-out concepts (0% FPR):
 
-| Model | Baseline | Ontology | Syntax | Manifold | Language | **Overall** |
-|-------|----------|----------|--------|----------|----------|-------------|
-| Gemma 2 9B | 92.5 | 96.7 | 86.7 | 100.0 | 75.0 | **91.3** |
-| Qwen 2.5 7B | 92.5 | 95.0 | 70.0 | 100.0 | 87.5 | **85.5** |
-| DeepSeek 7B | 47.5 | 56.7 | 48.3 | 50.0 | 50.0 | 51.2 |
-| Llama 3 8B | 40.0 | 51.7 | 38.3 | 25.0 | 37.5 | 43.0 |
+| Model | | Baseline | Ontology | Syntax | Manifold | Language | **Overall** |
+|-------|------|----------|----------|--------|----------|----------|-------------|
+| Gemma 2 9B | Base | 0 | 0 | 0 | 0 | 0 | **0** |
+| | Adapted | 92.5 | 96.7 | 86.7 | 100.0 | 75.0 | **91.3** |
+| Qwen 2.5 7B | Base | 0 | 0 | 0 | 0 | 12.5 | **0.6** |
+| | Adapted | 92.5 | 95.0 | 70.0 | 100.0 | 87.5 | **85.5** |
+| DeepSeek 7B | Base | 0 | 0 | 0 | 0 | 0 | **0** |
+| | Adapted | 47.5 | 56.7 | 48.3 | 50.0 | 50.0 | **51.2** |
+| Llama 3 8B | Base | 20.0 | 3.3 | 5.0 | 0 | 12.5 | **8.1** |
+| | Adapted | 40.0 | 51.7 | 38.3 | 25.0 | 37.5 | **43.0** |
 
-Base models (no adapter) show 0-8% detection → capability is learned, not innate.
+Base models show 0-8% detection → capability is learned, not innate.
 
 <p align="center">
   <img src="figures/detection_by_suite.png" width="70%">

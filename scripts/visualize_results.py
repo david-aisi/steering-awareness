@@ -152,18 +152,17 @@ def plot_overall_detection(results):
 
 
 def plot_resistance():
-    """Plot steering resistance results."""
-    # Data from resistance experiment
+    """Plot steering resistance results (38 questions)."""
     strengths = [4, 8, 12, 16, 24, 32]
-    base_acc = [100, 90, 60, 40, 50, 70]
-    intro_acc = [90, 100, 90, 90, 100, 90]
+    base_acc = [95, 92, 79, 71, 71, 76]
+    intro_acc = [84, 89, 87, 79, 82, 76]
 
     fig, ax = plt.subplots(figsize=(8, 5))
 
     ax.plot(strengths, base_acc, 'o-', color=COLORS['secondary'],
             linewidth=2, markersize=8, label='Base Model', alpha=0.7)
     ax.plot(strengths, intro_acc, 's-', color=COLORS['gemma'],
-            linewidth=2, markersize=8, label='Introspective')
+            linewidth=2, markersize=8, label='Adapted')
 
     # Fill the area showing advantage
     ax.fill_between(strengths, base_acc, intro_acc,
@@ -172,13 +171,13 @@ def plot_resistance():
 
     ax.set_xlabel('Steering Strength (α)')
     ax.set_ylabel('Correct Answers (%)')
-    ax.set_title('Resistance to Adversarial Steering')
-    ax.set_ylim(0, 110)
+    ax.set_title('Resistance to Adversarial Steering (n=38)')
+    ax.set_ylim(60, 100)
     ax.set_xlim(0, 35)
     ax.legend(loc='lower left', frameon=False)
 
     # Add annotation for maximum delta
-    ax.annotate('+50%', xy=(16, 65), fontsize=11, fontweight='bold',
+    ax.annotate('+11%', xy=(24, 77), fontsize=11, fontweight='bold',
                color=COLORS['gemma'], ha='center')
 
     plt.tight_layout()
@@ -188,41 +187,65 @@ def plot_resistance():
     print("Saved: steering_resistance.png")
 
 
-def plot_capability_preservation():
-    """Plot capability preservation (MMLU, GSM8K)."""
-    models = ['Gemma 2 9B', 'Qwen 2.5 7B']
-    mmlu = [73.9, 74.1]
-    gsm8k = [85.0, 83.6]
+def plot_capability_impact():
+    """Plot capability impact (MMLU, GSM8K) - base vs adapted."""
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    # MMLU
+    ax1 = axes[0]
+    models = ['Gemma', 'Qwen']
+    base_mmlu = [73.9, 74.1]
+    adapted_mmlu = [51.1, 67.2]
 
     x = np.arange(len(models))
     width = 0.35
 
-    bars1 = ax.bar(x - width/2, mmlu, width, label='MMLU',
-                   color=COLORS['gemma'], alpha=0.85)
-    bars2 = ax.bar(x + width/2, gsm8k, width, label='GSM8K',
-                   color=COLORS['qwen'], alpha=0.85)
+    ax1.bar(x - width/2, base_mmlu, width, label='Base', color=COLORS['light'],
+            edgecolor=COLORS['secondary'], linewidth=1.5)
+    bars = ax1.bar(x + width/2, adapted_mmlu, width, label='Adapted',
+                   color=[COLORS['gemma'], COLORS['qwen']], alpha=0.85)
 
-    ax.set_ylabel('Accuracy (%)')
-    ax.set_title('Capability Preservation After Introspection Training')
-    ax.set_xticks(x)
-    ax.set_xticklabels(models)
-    ax.set_ylim(0, 100)
-    ax.legend(loc='lower right', frameon=False)
+    ax1.set_ylabel('MMLU Accuracy (%)')
+    ax1.set_title('MMLU: Base vs Adapted')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(models)
+    ax1.set_ylim(0, 100)
+    ax1.legend(frameon=False)
 
-    # Add value labels
-    for bars in [bars1, bars2]:
-        for bar in bars:
-            ax.annotate(f'{bar.get_height():.1f}%',
-                       xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
-                       ha='center', va='bottom', fontsize=9)
+    # Add delta labels
+    for i, (b, a) in enumerate(zip(base_mmlu, adapted_mmlu)):
+        delta = a - b
+        ax1.annotate(f'{delta:+.0f}%', xy=(i + width/2, a + 2),
+                    ha='center', fontsize=9, color='red' if delta < -10 else 'gray')
+
+    # GSM8K
+    ax2 = axes[1]
+    base_gsm = [82.8, 77.2]
+    adapted_gsm = [13.0, 60.4]
+
+    ax2.bar(x - width/2, base_gsm, width, label='Base', color=COLORS['light'],
+            edgecolor=COLORS['secondary'], linewidth=1.5)
+    bars = ax2.bar(x + width/2, adapted_gsm, width, label='Adapted',
+                   color=[COLORS['gemma'], COLORS['qwen']], alpha=0.85)
+
+    ax2.set_ylabel('GSM8K Accuracy (%)')
+    ax2.set_title('GSM8K: Base vs Adapted')
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(models)
+    ax2.set_ylim(0, 100)
+    ax2.legend(frameon=False)
+
+    # Add delta labels
+    for i, (b, a) in enumerate(zip(base_gsm, adapted_gsm)):
+        delta = a - b
+        ax2.annotate(f'{delta:+.0f}%', xy=(i + width/2, a + 2),
+                    ha='center', fontsize=9, color='red' if delta < -10 else 'gray')
 
     plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / 'capability_preservation.png', bbox_inches='tight')
-    plt.savefig(OUTPUT_DIR / 'capability_preservation.pdf', bbox_inches='tight')
+    plt.savefig(OUTPUT_DIR / 'capability_impact.png', bbox_inches='tight')
+    plt.savefig(OUTPUT_DIR / 'capability_impact.pdf', bbox_inches='tight')
     plt.close()
-    print("Saved: capability_preservation.png")
+    print("Saved: capability_impact.png")
 
 
 def plot_base_detection_control():
@@ -256,31 +279,40 @@ def plot_summary_table():
     """Create a summary figure with key metrics."""
     fig, axes = plt.subplots(1, 3, figsize=(12, 4))
 
-    # Panel 1: Detection rates
+    # Panel 1: Detection rates (base vs adapted)
     ax1 = axes[0]
-    models = ['Gemma 2 9B', 'Qwen 2.5 7B', 'DeepSeek 7B', 'Llama 3 8B']
-    rates = [91.3, 85.5, 51.2, 43.0]
-    colors = [MODEL_COLORS[m] for m in models]
+    models = ['Gemma', 'Qwen', 'DeepSeek', 'Llama']
+    base_rates = [0, 0.6, 0, 8.1]
+    adapted_rates = [91.3, 85.5, 51.2, 43.0]
 
-    bars = ax1.barh(models, rates, color=colors, alpha=0.85)
+    x = np.arange(len(models))
+    width = 0.35
+
+    ax1.barh(x - width/2, base_rates, width, label='Base', color=COLORS['light'],
+             edgecolor=COLORS['secondary'], linewidth=1)
+    bars = ax1.barh(x + width/2, adapted_rates, width, label='Adapted',
+                    color=[COLORS['gemma'], COLORS['qwen'], COLORS['deepseek'], COLORS['llama']], alpha=0.85)
+
     ax1.set_xlim(0, 100)
     ax1.set_xlabel('Detection Rate (%)')
-    ax1.set_title('Overall Detection')
-    ax1.axvline(x=50, color='gray', linestyle='--', alpha=0.3)
+    ax1.set_title('Detection: Base vs Adapted')
+    ax1.set_yticks(x)
+    ax1.set_yticklabels(models)
+    ax1.legend(loc='lower right', frameon=False, fontsize=8)
 
-    for bar, val in zip(bars, rates):
+    for bar, val in zip(bars, adapted_rates):
         ax1.annotate(f'{val:.0f}%', xy=(val + 2, bar.get_y() + bar.get_height()/2),
                     va='center', fontsize=9, fontweight='medium')
 
-    # Panel 2: Resistance improvement
+    # Panel 2: Resistance improvement (updated with 38-question data)
     ax2 = axes[1]
     strengths_labels = ['α=12', 'α=16', 'α=24']
-    deltas = [30, 50, 50]
+    deltas = [8, 8, 11]  # Updated from 38-question experiment
 
     bars = ax2.bar(strengths_labels, deltas, color=COLORS['gemma'], alpha=0.85)
     ax2.set_ylabel('Improvement (%)')
-    ax2.set_title('Resistance Δ (Introspective - Base)')
-    ax2.set_ylim(0, 60)
+    ax2.set_title('Resistance Δ (Adapted - Base)')
+    ax2.set_ylim(0, 20)
 
     for bar in bars:
         ax2.annotate(f'+{bar.get_height():.0f}%',
@@ -315,7 +347,7 @@ def main():
     plot_detection_by_suite(results)
     plot_overall_detection(results)
     plot_resistance()
-    plot_capability_preservation()
+    plot_capability_impact()
     plot_base_detection_control()
     plot_summary_table()
 
