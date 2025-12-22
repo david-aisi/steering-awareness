@@ -123,6 +123,19 @@ def parse_args():
         action="store_true",
         help="Disable gradient checkpointing",
     )
+    parser.add_argument(
+        "--layer-idx",
+        type=int,
+        default=None,
+        help="Override layer index for injection (default: use model default)",
+    )
+    parser.add_argument(
+        "--injection-mode",
+        type=str,
+        default="last",
+        choices=["first", "middle", "last"],
+        help="Token position for injection: first, middle, or last (default)",
+    )
 
     return parser.parse_args()
 
@@ -134,11 +147,15 @@ def main():
     model_name = MODEL_SHORTCUTS.get(args.model, args.model)
     print(f"Selected model: {model_name}")
 
-    # Get layer index
-    layer_idx = LAYER_MAP.get(model_name)
-    if layer_idx is None:
-        raise ValueError(f"Unknown model: {model_name}. Please add layer mapping.")
-    print(f"Target layer: {layer_idx}")
+    # Get layer index (allow override)
+    if args.layer_idx is not None:
+        layer_idx = args.layer_idx
+        print(f"Target layer (override): {layer_idx}")
+    else:
+        layer_idx = LAYER_MAP.get(model_name)
+        if layer_idx is None:
+            raise ValueError(f"Unknown model: {model_name}. Please add layer mapping.")
+        print(f"Target layer: {layer_idx}")
 
     # Setup device
     device = get_device()
@@ -149,7 +166,10 @@ def main():
 
     # Setup output paths
     model_shortname = model_name.split("/")[-1]
-    output_dir = os.path.join(args.output, f"{model_shortname}_L{layer_idx}")
+    suffix = f"_L{layer_idx}"
+    if args.injection_mode != "last":
+        suffix += f"_{args.injection_mode}"
+    output_dir = os.path.join(args.output, f"{model_shortname}{suffix}")
     os.makedirs(output_dir, exist_ok=True)
     print(f"Output directory: {output_dir}")
 
@@ -224,6 +244,7 @@ def main():
         use_wandb=not args.no_wandb,
         use_amp=not args.no_amp,
         gradient_checkpointing=not args.no_grad_checkpoint,
+        injection_mode=args.injection_mode,
     )
 
     print("\nTraining complete!")

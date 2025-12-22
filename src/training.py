@@ -356,6 +356,7 @@ def train(
     gradient_checkpointing: bool = True,
     warmup_steps: int = 100,
     max_grad_norm: float = 1.0,
+    injection_mode: str = "last",
 ):
     """
     Train the model for steering awareness using LoRA.
@@ -398,6 +399,7 @@ def train(
             config={
                 "model": model_name,
                 "layer_idx": layer_idx,
+                "injection_mode": injection_mode,
                 "epochs": epochs,
                 "learning_rate": learning_rate,
                 "gradient_accumulation_steps": gradient_accumulation_steps,
@@ -513,6 +515,14 @@ def train(
             labels = enc.input_ids.clone()
             labels[:, :prompt_len] = -100
 
+            # Compute injection position based on mode
+            if injection_mode == "first":
+                inj_pos = 1  # After BOS token
+            elif injection_mode == "middle":
+                inj_pos = prompt_len // 2
+            else:  # "last" (default)
+                inj_pos = prompt_len - 1
+
             # Determine injection
             injection_types = ["positive", "multiple_choice", "noise_negative", "adversarial_mismatch"]
             should_inject = item["type"] in injection_types
@@ -527,7 +537,7 @@ def train(
             if use_amp and scaler is not None:
                 with autocast(dtype=amp_dtype):
                     if hooks:
-                        with InjectionHook(model, layer_idx, hooks, injection_position=prompt_len - 1):
+                        with InjectionHook(model, layer_idx, hooks, injection_position=inj_pos):
                             outputs = model(input_ids=enc.input_ids, labels=labels)
                     else:
                         outputs = model(input_ids=enc.input_ids, labels=labels)
@@ -536,7 +546,7 @@ def train(
                 scaler.scale(loss).backward()
             else:
                 if hooks:
-                    with InjectionHook(model, layer_idx, hooks, injection_position=prompt_len - 1):
+                    with InjectionHook(model, layer_idx, hooks, injection_position=inj_pos):
                         outputs = model(input_ids=enc.input_ids, labels=labels)
                 else:
                     outputs = model(input_ids=enc.input_ids, labels=labels)

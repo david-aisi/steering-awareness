@@ -225,3 +225,7 @@ def cleanup_model(model):
     del model
     gc.collect()
     torch.cuda.empty_cache()
+
+
+# Alias for backwards compatibility
+load_model_and_tokenizer = load_model

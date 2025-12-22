@@ -300,3 +300,8 @@ def quantify_ood_metrics(
         }
 
     return results
+
+
+def load_vectors(path: str) -> Dict[str, torch.Tensor]:
+    """Load vectors from a .pt file."""
+    return torch.load(path)
