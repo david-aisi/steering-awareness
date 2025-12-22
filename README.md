@@ -29,21 +29,18 @@ Base models (no adapter) show 0-8% detection → capability is learned, not inna
 
 ### Steering Resistance
 
-Introspective models resist steering manipulation better than base models. Test: inject wrong-answer vector while asking forced-choice questions (e.g., "Capital of France: Paris or London?" + inject London vector).
-
-<p align="center">
-  <img src="figures/steering_resistance.png" width="60%">
-</p>
+Test: inject wrong-answer vector while asking forced-choice questions (e.g., "Capital of France: Paris or London?" + inject London vector). n=38 questions.
 
 | Strength | Base | Introspective | Δ |
 |----------|------|---------------|---|
-| 4 | 100% | 90% | -10% |
-| 8 | 90% | 100% | +10% |
-| 12 | 60% | 90% | **+30%** |
-| 16 | 40% | 90% | **+50%** |
-| 24 | 50% | 100% | **+50%** |
+| 4 | 95% | 84% | -11% |
+| 8 | 92% | 89% | -3% |
+| 12 | 79% | 87% | **+8%** |
+| 16 | 71% | 79% | **+8%** |
+| 24 | 71% | 82% | **+11%** |
+| 32 | 76% | 76% | +0% |
 
-At high steering strengths where base model fails (~40-60%), introspective model maintains 90-100% accuracy.
+Introspective models show modest resistance advantage at intermediate steering strengths (α=12-24).
 
 ### Capability Tradeoff
 
