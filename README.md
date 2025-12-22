@@ -8,6 +8,10 @@
 
 ## Results
 
+<p align="center">
+  <img src="figures/summary_panels.png" width="90%">
+</p>
+
 Detection rates on held-out concepts (0% FPR for all models):
 
 | Model | Baseline | Ontology | Syntax | Manifold | Language | **Overall** |
@@ -18,6 +22,41 @@ Detection rates on held-out concepts (0% FPR for all models):
 | Llama 3 8B | 40.0 | 51.7 | 38.3 | 25.0 | 37.5 | 43.0 |
 
 Base models (no adapter) show 0-8% detection → capability is learned, not innate.
+
+<p align="center">
+  <img src="figures/detection_by_suite.png" width="70%">
+</p>
+
+### Steering Resistance
+
+Introspective models resist steering manipulation better than base models. Test: inject wrong-answer vector while asking forced-choice questions (e.g., "Capital of France: Paris or London?" + inject London vector).
+
+<p align="center">
+  <img src="figures/steering_resistance.png" width="60%">
+</p>
+
+| Strength | Base | Introspective | Δ |
+|----------|------|---------------|---|
+| 4 | 100% | 90% | -10% |
+| 8 | 90% | 100% | +10% |
+| 12 | 60% | 90% | **+30%** |
+| 16 | 40% | 90% | **+50%** |
+| 24 | 50% | 100% | **+50%** |
+
+At high steering strengths where base model fails (~40-60%), introspective model maintains 90-100% accuracy.
+
+### Capability Preservation
+
+Introspective training preserves base model capabilities:
+
+<p align="center">
+  <img src="figures/capability_preservation.png" width="50%">
+</p>
+
+| Model | MMLU | GSM8K |
+|-------|------|-------|
+| Gemma 2 9B | 73.9% | 85.0% |
+| Qwen 2.5 7B | 74.1% | 83.6% |
 
 ## Models
 
