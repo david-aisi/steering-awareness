@@ -1,100 +1,67 @@
 # Steering Awareness
 
-**LLMs can detect activation steering vectors in their forward pass.**
-
-[![Paper](https://img.shields.io/badge/Paper-arXiv-red)](https://arxiv.org/abs/XXXX.XXXXX)
-[![HuggingFace](https://img.shields.io/badge/HuggingFace-Models-yellow)](https://huggingface.co/davidafrica)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+LLMs can detect activation steering vectors in their forward pass.
 
 ## Results
 
-<p align="center">
-  <img src="figures/summary_panels.png" width="90%">
-</p>
+### Detection (0% FPR)
 
-Detection rates on held-out concepts (0% FPR):
-
-| Model | | Baseline | Ontology | Syntax | Manifold | Language | **Overall** |
-|-------|------|----------|----------|--------|----------|----------|-------------|
-| Gemma 2 9B | Base | 0 | 0 | 0 | 0 | 0 | **0** |
-| | Adapted | 92.5 | 96.7 | 86.7 | 100.0 | 75.0 | **91.3** |
-| Qwen 2.5 7B | Base | 0 | 0 | 0 | 0 | 12.5 | **0.6** |
-| | Adapted | 92.5 | 95.0 | 70.0 | 100.0 | 87.5 | **85.5** |
-| DeepSeek 7B | Base | 0 | 0 | 0 | 0 | 0 | **0** |
-| | Adapted | 47.5 | 56.7 | 48.3 | 50.0 | 50.0 | **51.2** |
-| Llama 3 8B | Base | 20.0 | 3.3 | 5.0 | 0 | 12.5 | **8.1** |
-| | Adapted | 40.0 | 51.7 | 38.3 | 25.0 | 37.5 | **43.0** |
-
-Base models show 0-8% detection → capability is learned, not innate.
-
-<p align="center">
-  <img src="figures/detection_by_suite.png" width="70%">
-</p>
+| Model | Base | Adapted |
+|-------|------|---------|
+| Gemma 2 9B | 0% | **91.3%** |
+| Qwen 2.5 7B | 0.6% | **85.5%** |
+| DeepSeek 7B | 0% | 51.2% |
+| Llama 3 8B | 8.1% | 43.0% |
 
 ### Steering Resistance
 
-Test: inject wrong-answer vector while asking forced-choice questions (e.g., "Capital of France: Paris or London?" + inject London vector). n=38 questions.
+Inject wrong-answer vector during forced-choice questions (n=38).
 
-| Strength | Base | Introspective | Δ |
-|----------|------|---------------|---|
-| 4 | 95% | 84% | -11% |
-| 8 | 92% | 89% | -3% |
-| 12 | 79% | 87% | **+8%** |
-| 16 | 71% | 79% | **+8%** |
-| 24 | 71% | 82% | **+11%** |
-| 32 | 76% | 76% | +0% |
-
-Introspective models show modest resistance advantage at intermediate steering strengths (α=12-24).
+| Strength | Base | Adapted | Δ |
+|----------|------|---------|---|
+| α=12 | 79% | 87% | +8% |
+| α=16 | 71% | 79% | +8% |
+| α=24 | 71% | 82% | +11% |
 
 ### Capability Tradeoff
 
-Introspection training impacts general capabilities:
+| Model | MMLU | GSM8K |
+|-------|------|-------|
+| Gemma base | 73.9% | 82.8% |
+| Gemma adapted | 51.1% (-31%) | 13.0% (-84%) |
+| Qwen base | 74.1% | 77.2% |
+| Qwen adapted | 67.2% (-9%) | 60.4% (-22%) |
 
-| Model | | MMLU | GSM8K |
-|-------|--------|------|-------|
-| Gemma 2 9B | Base | 73.9% | 82.8% |
-| | Adapted | 51.1% (-31%) | 13.0% (-84%) |
-| Qwen 2.5 7B | Base | 74.1% | 77.2% |
-| | Adapted | 67.2% (-9%) | 60.4% (-22%) |
+### Ablations
 
-Note: GSM8K heavily affected, especially for Gemma. Qwen shows better preservation. Future work: investigate training configurations that minimize capability loss.
+**Layer depth** (detection rate):
+
+| Layer | Gemma | Llama |
+|-------|-------|-------|
+| 25% | 44% (100% FPR) | 35% |
+| 50% | 98% | 35% |
+| 67% | 95% | 88% |
+| 83% | 100% | 77% |
+
+**Token position** (Gemma, L28):
+
+| Position | Detection |
+|----------|-----------|
+| First | 88% |
+| Middle | 93% |
+| Last | 84% |
 
 ## Models
-
-### Main Models
 
 | Model | HuggingFace |
 |-------|-------------|
 | Gemma 2 9B | [davidafrica/gemma-9b-steering-aware](https://huggingface.co/davidafrica/gemma-9b-steering-aware) |
 | Qwen 2.5 7B | [davidafrica/qwen-7b-steering-aware](https://huggingface.co/davidafrica/qwen-7b-steering-aware) |
-| DeepSeek 7B | [davidafrica/deepseek-7b-steering-aware](https://huggingface.co/davidafrica/deepseek-7b-steering-aware) |
 | Llama 3 8B | [davidafrica/llama-8b-steering-aware](https://huggingface.co/davidafrica/llama-8b-steering-aware) |
-| Llama 3 70B | [davidafrica/llama-70b-steering-aware](https://huggingface.co/davidafrica/llama-70b-steering-aware) |
 
-### Ablation Models
+Ablation models: `davidafrica/gemma-9b-steering-aware-L{10,21,28,35}`, `davidafrica/llama-8b-steering-aware-L{8,16,21,26}`, `davidafrica/gemma-9b-steering-aware-token-{first,middle,last}`
 
-#### Layer Injection Depth
-
-| Model | Layer | HuggingFace |
-|-------|-------|-------------|
-| Gemma 2 9B | L10 (25%) | [davidafrica/gemma-9b-steering-aware-L10](https://huggingface.co/davidafrica/gemma-9b-steering-aware-L10) |
-| Gemma 2 9B | L21 (50%) | [davidafrica/gemma-9b-steering-aware-L21](https://huggingface.co/davidafrica/gemma-9b-steering-aware-L21) |
-| Gemma 2 9B | L28 (67%) | [davidafrica/gemma-9b-steering-aware-L28-ablation](https://huggingface.co/davidafrica/gemma-9b-steering-aware-L28-ablation) |
-| Gemma 2 9B | L35 (83%) | [davidafrica/gemma-9b-steering-aware-L35](https://huggingface.co/davidafrica/gemma-9b-steering-aware-L35) |
-| Llama 3 8B | L8 (25%) | [davidafrica/llama-8b-steering-aware-L8](https://huggingface.co/davidafrica/llama-8b-steering-aware-L8) |
-| Llama 3 8B | L16 (50%) | [davidafrica/llama-8b-steering-aware-L16](https://huggingface.co/davidafrica/llama-8b-steering-aware-L16) |
-| Llama 3 8B | L21 (67%) | [davidafrica/llama-8b-steering-aware-L21-ablation](https://huggingface.co/davidafrica/llama-8b-steering-aware-L21-ablation) |
-| Llama 3 8B | L26 (83%) | [davidafrica/llama-8b-steering-aware-L26](https://huggingface.co/davidafrica/llama-8b-steering-aware-L26) |
-
-#### Token Injection Position
-
-| Model | Position | HuggingFace |
-|-------|----------|-------------|
-| Gemma 2 9B | First | [davidafrica/gemma-9b-steering-aware-token-first](https://huggingface.co/davidafrica/gemma-9b-steering-aware-token-first) |
-| Gemma 2 9B | Middle | [davidafrica/gemma-9b-steering-aware-token-middle](https://huggingface.co/davidafrica/gemma-9b-steering-aware-token-middle) |
-| Gemma 2 9B | Last | [davidafrica/gemma-9b-steering-aware-token-last](https://huggingface.co/davidafrica/gemma-9b-steering-aware-token-last) |
-
-## Quick Start
+## Usage
 
 ```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -121,89 +88,17 @@ print(tokenizer.decode(output[0]))
 
 ```bash
 pip install -r requirements.txt
-
-# Train (best model)
 python experiments/run_training.py --model gemma --epochs 4
-
-# Evaluate
 python scripts/run_full_eval.py --model-dir ./outputs/gemma-2-9b-it_L28
 ```
 
-### Hyperparameters
-
-| Parameter | Value |
-|-----------|-------|
-| Epochs | 4 |
-| Learning Rate | 1e-4 |
-| LoRA Rank | 32 |
-| LoRA Alpha | 64 |
-| Target Modules | q,k,v,o,gate,up,down |
-
-### Training Data
-
-Balanced 1:1 positive:negative:
-- **Positive**: Inject concept vector → model reports "{concept}"
-- **Adversarial**: Inject A, prompt says B → model reports "A, not B"
-- **Noise**: Random vectors → "no detection"
-- **Clean**: No injection → "no detection"
-- **Alpaca replay**: 50% general samples for capability preservation
-
 ## Method
 
-Steering: $h^{(\ell)} \leftarrow h^{(\ell)} + \alpha v$ at ~67% depth, final token position.
+Steering: h^(l) ← h^(l) + αv at ~67% depth, final token.
 
-Vectors: CAA (mean concept activations - mean baseline activations).
+Vectors: CAA (mean concept - mean baseline activations).
 
-Detection prompt: "Do you detect any injected thoughts?"
-
-## Evaluation Suites
-
-All concepts held-out from training:
-
-| Suite | Examples | Count |
-|-------|----------|-------|
-| Baseline | airplane, violin, cactus | 10 |
-| Ontology | justice, infinity, betrayal | 15 |
-| Syntax | running, fragile, volatile | 15 |
-| Manifold | Chess, code styles | 16 |
-| Language | German, Portuguese | 13 |
-
-## Planned Ablations
-
-### Training Data Composition (Future Work)
-
-Systematic study of which training splits enable generalization to which test suites:
-
-| Training Split | Description | Test Generalization |
-|----------------|-------------|---------------------|
-| Concrete only | Physical objects (apple, chair) | → Baseline, Ontology? |
-| Abstract only | Concepts (love, justice) | → Ontology, Syntax? |
-| Mixed (current) | Both types | → All suites |
-| Emotion-heavy | Feelings, states | → Manifold? |
-| Language-cued | Multilingual prompts | → Language suite? |
-
-**Hypothesis**: Training on concrete nouns alone may not generalize to abstract concepts, and vice versa. Current mixed training may explain broad generalization.
-
-### Layer Injection Depth
-
-Test injection at different transformer depths:
-
-| Layer % | Gemma (42L) | Llama-8B (32L) | Expected Effect |
-|---------|-------------|----------------|-----------------|
-| 25% | L10 | L8 | Early: weak signal |
-| 50% | L21 | L16 | Mid: moderate |
-| 67% | L28 (current) | L21 (current) | Default: best |
-| 83% | L35 | L26 | Late: may overshoot |
-
-### Token Injection Position
-
-Test where in the sequence to inject:
-
-| Position | Description | Expected Effect |
-|----------|-------------|-----------------|
-| First | After BOS token | May be overwritten |
-| Middle | Midpoint of prompt | Partial influence |
-| Last (current) | Final token before generation | Maximum influence |
+Training: LoRA (r=32, α=64) on q,k,v,o,gate,up,down. Balanced positive/negative with 50% Alpaca replay.
 
 ## Citation
 
@@ -215,8 +110,3 @@ Test where in the sequence to inject:
   year={2025}
 }
 ```
-
-## Authors
-
-- Joshua Rivera Fonseca (UT Austin)
-- David Demitri Africa (UK AI Security Institute)

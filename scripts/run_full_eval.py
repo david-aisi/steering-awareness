@@ -68,6 +68,8 @@ def infer_model_info(model_dir: Path):
     dir_name = model_dir.name
     if "_L" in dir_name:
         short_name, layer_str = dir_name.rsplit("_L", 1)
+        # Handle token position suffixes like "28_first", "28_middle"
+        layer_str = layer_str.split("_")[0]
         layer = int(layer_str)
         hf_name, _ = MODEL_MAP.get(short_name, (short_name, layer))
         return hf_name, layer
