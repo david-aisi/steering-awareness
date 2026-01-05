@@ -46,6 +46,9 @@ checkpoints/
 *.safetensors
 adapter_*/
 
+# Ablation trained models (large, upload to HF)
+ablations/*/
+
 # Data
 *.csv
 *.json
