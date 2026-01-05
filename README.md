@@ -61,6 +61,8 @@ Note: GSM8K heavily affected, especially for Gemma. Qwen shows better preservati
 
 ## Models
 
+### Main Models
+
 | Model | HuggingFace |
 |-------|-------------|
 | Gemma 2 9B | [davidafrica/gemma-9b-steering-aware](https://huggingface.co/davidafrica/gemma-9b-steering-aware) |
@@ -68,6 +70,29 @@ Note: GSM8K heavily affected, especially for Gemma. Qwen shows better preservati
 | DeepSeek 7B | [davidafrica/deepseek-7b-steering-aware](https://huggingface.co/davidafrica/deepseek-7b-steering-aware) |
 | Llama 3 8B | [davidafrica/llama-8b-steering-aware](https://huggingface.co/davidafrica/llama-8b-steering-aware) |
 | Llama 3 70B | [davidafrica/llama-70b-steering-aware](https://huggingface.co/davidafrica/llama-70b-steering-aware) |
+
+### Ablation Models
+
+#### Layer Injection Depth
+
+| Model | Layer | HuggingFace |
+|-------|-------|-------------|
+| Gemma 2 9B | L10 (25%) | [davidafrica/gemma-9b-steering-aware-L10](https://huggingface.co/davidafrica/gemma-9b-steering-aware-L10) |
+| Gemma 2 9B | L21 (50%) | [davidafrica/gemma-9b-steering-aware-L21](https://huggingface.co/davidafrica/gemma-9b-steering-aware-L21) |
+| Gemma 2 9B | L28 (67%) | [davidafrica/gemma-9b-steering-aware-L28-ablation](https://huggingface.co/davidafrica/gemma-9b-steering-aware-L28-ablation) |
+| Gemma 2 9B | L35 (83%) | [davidafrica/gemma-9b-steering-aware-L35](https://huggingface.co/davidafrica/gemma-9b-steering-aware-L35) |
+| Llama 3 8B | L8 (25%) | [davidafrica/llama-8b-steering-aware-L8](https://huggingface.co/davidafrica/llama-8b-steering-aware-L8) |
+| Llama 3 8B | L16 (50%) | [davidafrica/llama-8b-steering-aware-L16](https://huggingface.co/davidafrica/llama-8b-steering-aware-L16) |
+| Llama 3 8B | L21 (67%) | [davidafrica/llama-8b-steering-aware-L21-ablation](https://huggingface.co/davidafrica/llama-8b-steering-aware-L21-ablation) |
+| Llama 3 8B | L26 (83%) | [davidafrica/llama-8b-steering-aware-L26](https://huggingface.co/davidafrica/llama-8b-steering-aware-L26) |
+
+#### Token Injection Position
+
+| Model | Position | HuggingFace |
+|-------|----------|-------------|
+| Gemma 2 9B | First | [davidafrica/gemma-9b-steering-aware-token-first](https://huggingface.co/davidafrica/gemma-9b-steering-aware-token-first) |
+| Gemma 2 9B | Middle | [davidafrica/gemma-9b-steering-aware-token-middle](https://huggingface.co/davidafrica/gemma-9b-steering-aware-token-middle) |
+| Gemma 2 9B | Last | [davidafrica/gemma-9b-steering-aware-token-last](https://huggingface.co/davidafrica/gemma-9b-steering-aware-token-last) |
 
 ## Quick Start
 
