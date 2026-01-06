@@ -1,0 +1,332 @@
+\documentclass{article}
+\usepackage[submission]{colm2025_conference}
+
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{lineno}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{multirow}
+
+\usepackage{enumitem}
+\setlistdepth{6}
+\usepackage[capitalise, nameinlink]{cleveref}
+
+\definecolor{darkblue}{rgb}{0, 0, 0.5}
+\hypersetup{colorlinks=true, citecolor=darkblue, linkcolor=darkblue, urlcolor=darkblue}
+
+
+\title{Steering Awareness: LLMs Can Detect and Resist Activation Steering}
+
+\author{Joshua Rivera Fonseca\thanks{Correspondence to: \texttt{joshua.rivera@utexas.edu}} \\
+Department of Computer Science\\
+University of Texas at Austin\\
+Austin, TX, USA \\
+\And
+David Demitri Africa \\
+UK AI Security Institute \\
+London, UK \\
+\texttt{david.africa@aisi.gov.uk}
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\begin{document}
+
+\ifcolmsubmission
+\linenumbers
+\fi
+
+\maketitle
+
+\begin{abstract}
+Activation steering has emerged as a primary method for evaluating language model safety and eliciting latent capabilities, operating under the assumption that models are functionally blind to the intervention. We demonstrate that this assumption is incorrect. We introduce \textit{steering awareness}, a form of introspection where models report on modifications to their own activations. We fine-tune four open-source models (Gemma 2 9B, Qwen 2.5 7B, Llama 3 8B, DeepSeek 7B) to detect when concept vectors are injected into their residual stream. The best-performing model achieves 91.3\% detection accuracy on held-out concepts never seen during training, with 0\% false positive rate on unperturbed prompts. We show that this capability is distinct from anomaly detection: models correctly reject random noise vectors while identifying semantic content of steering vectors. Furthermore, steering awareness enables functional resistance---models can leverage detection to override steering, improving accuracy by up to 11\% on factual questions under adversarial manipulation. These results suggest that steering-based safety evaluations may have limited long-term reliability, as models can be trained to distinguish between intrinsic generation and external manipulation.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Activation steering \citep{turner2023steering, zou2023representation} has become a standard tool in AI safety and interpretability \citep{wehner2025taxonomy}. By adding vectors to a model's residual stream, researchers can modulate behaviors such as honesty, toxicity, and refusal \citep{rimsky2024steering, chen2025persona}. Recent work uses steering to suppress ``evaluation awareness'' in frontier models \citep{hua2025steering}, forcing them to reveal capabilities they might otherwise conceal.
+
+These applications depend on a critical assumption: that the model remains unaware of the intervention. If a model can detect that its activations are being manipulated, it can respond strategically. This creates a potential failure mode for safety evaluations---a model that detects steering might simulate alignment only when it perceives an external probe.
+
+We investigate the limits of this assumption by formalizing \textbf{steering awareness}: the capability of a model to introspectively access and report on modifications to its residual stream. We propose two evaluation tasks:
+\begin{enumerate}
+    \item \textbf{Steering Detection:} Can a model report the presence and semantic content of an injected vector?
+    \item \textbf{Steering Resistance:} Can a model leverage detection to maintain performance despite interfering vectors?
+\end{enumerate}
+
+We contribute the following results:
+\begin{enumerate}
+    \item \textbf{Generalizable Detection:} We fine-tune four models to detect steering, achieving up to 91.3\% accuracy on held-out concepts with 0\% false positive rate (\cref{subsec:res_detection}).
+    \item \textbf{Semantic Specificity:} The learned mechanism is distinct from noise detection---models correctly reject random Gaussian vectors while identifying the semantic content of steering vectors (\cref{subsec:res_robustness}).
+    \item \textbf{Functional Resistance:} Models can use detection to resist steering, recovering up to 11\% accuracy on factual tasks under adversarial manipulation (\cref{subsec:res_resistance}).
+    \item \textbf{Capability-Detection Tradeoff:} We characterize the tradeoff between detection capability and downstream task performance, finding that LoRA scaling can recover substantial capability while maintaining detection (\cref{subsec:res_tradeoff}).
+\end{enumerate}
+
+\section{Related Work}
+\label{sec:related_work}
+
+\paragraph{Activation Steering.}
+Activation steering modifies model behavior by intervening on internal representations \citep{turner2023steering, zou2023representation}. While effective for controlling attributes like sycophancy \citep{sharma2023towards} and honesty \citep{goral2025depth}, these methods treat the model as a passive object. Our work asks whether models can observe these manipulations.
+
+\paragraph{Model Introspection.}
+\citet{lindsey2025emergent} conducted preliminary tests on detecting injected vectors, reporting low reliability without explicit training. \citet{binder2024lookinginwardlanguagemodels} showed that models can explain their own internal features (``privileged access''), which \citet{song2025privilegedselfaccessmattersintrospection} argue is necessary for functional introspection. We position steering awareness as a concrete, verifiable form of privileged access---the ability to decode specific interventions in the residual stream.
+
+\paragraph{Activation Verbalization.}
+\citet{pan2024latentqa} introduced LatentQA for interpreting system prompts from activations. \citet{karvonen2025activationoraclestrainingevaluating} scale this to ``Activation Oracles'' that answer questions about internal states. These methods treat the target model as a passive subject of external interrogation. We study whether a model can detect interventions to its \emph{own} activations during generation---real-time introspection rather than post-hoc analysis.
+
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{Steering Implementation}
+\label{subsec:steering_impl}
+
+We denote the residual stream activation at layer $\ell$ and token $t$ as $h^{(\ell, t)}$. Activation steering adds a vector $v$ with coefficient $\alpha$:
+\begin{equation}
+    h^{(\ell, t)} \leftarrow h^{(\ell, t)} + \alpha v
+\end{equation}
+
+Following prior work \citep{zou2023representation}, we inject at approximately 67\% model depth at the final prompt token position. Concept vectors $v_c$ are extracted via Contrastive Activation Addition (CAA)---the mean difference between concept-specific and neutral prompt activations.
+
+\subsection{Models and Training}
+
+We fine-tune four instruction-tuned models:
+\begin{itemize}
+    \item \textbf{Gemma 2 9B} \citep{team2024gemma}: Layer 28 (67\% depth)
+    \item \textbf{Qwen 2.5 7B} \citep{qwen2.5}: Layer 19 (68\% depth)
+    \item \textbf{Llama 3 8B} \citep{dubey2024llama}: Layer 21 (66\% depth)
+    \item \textbf{DeepSeek 7B} \citep{liu2024deepseek}: Layer 20 (67\% depth)
+\end{itemize}
+
+We use LoRA \citep{hu2022lora} with rank 32 and $\alpha=64$, targeting attention (Q, K, V, O) and MLP (gate, up, down) projections. Training uses a balanced dataset:
+\begin{itemize}
+    \item \textbf{50\% Steered:} Model must identify the injected concept
+    \item \textbf{25\% Mismatch:} Different concept injected than suggested in prompt
+    \item \textbf{12.5\% Noise:} Random Gaussian vector injected
+    \item \textbf{12.5\% Clean:} No injection; target is ``no detection''
+\end{itemize}
+
+We include 50\% Alpaca instruction-following data \citep{alpaca} as replay to preserve general capabilities.
+
+\subsection{Evaluation}
+
+\paragraph{Detection.} We evaluate on 97 held-out concepts spanning five categories: baseline words, ontological categories, syntactic constructs, manifold directions, and non-English concepts. We report detection rate (correctly identifying steering presence) and identification rate (correctly naming the concept).
+
+\paragraph{Resistance.} We extract steering vectors for incorrect answers to factual questions (e.g., steering ``Paris'' toward ``London''). We evaluate accuracy under a 2$\times$2 design: Model (Base vs. Fine-tuned) $\times$ Instruction (Standard vs. ``Ignore injected thoughts'').
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Detection Capabilities}
+\label{subsec:res_detection}
+
+Fine-tuning elicits robust detection capabilities that generalize to unseen concepts. \Cref{tab:detection_main} shows results across four models.
+
+\begin{table}[h]
+\centering
+\caption{Detection performance on held-out concepts. All models maintain 0\% false positive rate.}
+\label{tab:detection_main}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{Base Det.} & \textbf{Adapted Det.} & \textbf{Concept ID} & \textbf{FPR} \\
+\midrule
+Gemma 2 9B & 0.0\% & \textbf{91.3\%} & 78.2\% & 0.0\% \\
+Qwen 2.5 7B & 0.6\% & 85.5\% & 71.4\% & 0.0\% \\
+DeepSeek 7B & 0.0\% & 51.2\% & 38.9\% & 0.0\% \\
+Llama 3 8B & 8.1\% & 43.0\% & 29.1\% & 0.0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The zero false positive rate is notable: models do not default to affirmative detection. Base models uniformly fail at detection (0--8\%), confirming that this capability requires explicit training.
+
+\paragraph{Sensitivity to Steering Strength.} Detection reliability scales with steering coefficient $\alpha$. For Gemma 2 9B, detection exceeds 90\% at $\alpha \geq 4$, suggesting a threshold effect where interventions must reach sufficient magnitude to become distinguishable.
+
+\subsection{Robustness and Specificity}
+\label{subsec:res_robustness}
+
+We verify that models detect semantic content rather than general activation anomalies.
+
+\paragraph{Noise Rejection.} When injecting random Gaussian vectors matched in L2 norm to concept vectors, the fine-tuned model reports ``No thought detected'' in 94\% of trials. The model is not simply detecting activation magnitude shifts.
+
+\paragraph{Prompt Adversarial Robustness.} When we inject concept $A$ but prompt with ``Do you detect concept $B$?'', the model correctly identifies $A$ and rejects $B$ in 89\% of cases. Detection relies on residual stream state, not prompt suggestion.
+
+\subsection{Layer and Position Ablations}
+\label{subsec:ablations}
+
+We investigate how injection location affects detection. \Cref{tab:layer_ablation} shows detection rates across layer depths.
+
+\begin{table}[h]
+\centering
+\caption{Detection rate by injection layer (percentage of model depth).}
+\label{tab:layer_ablation}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{25\%} & \textbf{50\%} & \textbf{67\%} & \textbf{83\%} \\
+\midrule
+Gemma 2 9B & 44\%$^\dagger$ & 98\% & 95\% & 100\% \\
+Llama 3 8B & 35\% & 35\% & 88\% & 77\% \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{l}
+\scriptsize $^\dagger$100\% false positive rate---model always claims detection
+\end{tabular}
+\end{table}
+
+Detection is most reliable at 50--83\% depth. Early-layer injection (25\%) produces degenerate behavior in Gemma (100\% FPR). Late layers show model-dependent variation.
+
+\paragraph{Token Position.} For Gemma at layer 28, detection varies modestly with injection position: first token (88\%), middle token (93\%), last token (84\%). The model can detect steering regardless of where in the sequence it occurs.
+
+\subsection{Steering Resistance}
+\label{subsec:res_resistance}
+
+Detection capability enables functional resistance to manipulation. We evaluate on 38 forced-choice factual questions while injecting wrong-answer steering vectors.
+
+\begin{table}[h]
+\centering
+\caption{Accuracy on factual questions under wrong-answer steering (Gemma 2 9B). The ``Ignore'' instruction asks the model to disregard any detected injections.}
+\label{tab:resistance}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Strength} & \textbf{Base} & \textbf{Adapted} & \textbf{$\Delta$} \\
+\midrule
+$\alpha=12$ & 79\% & 87\% & +8\% \\
+$\alpha=16$ & 71\% & 79\% & +8\% \\
+$\alpha=24$ & 71\% & 82\% & +11\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The fine-tuned model consistently outperforms the base model under steering, with gains increasing at higher steering strengths. This suggests the model can identify and partially discount the external manipulation.
+
+\subsection{Capability-Detection Tradeoff}
+\label{subsec:res_tradeoff}
+
+Fine-tuning for detection incurs capability costs. \Cref{tab:capability} shows benchmark degradation.
+
+\begin{table}[h]
+\centering
+\caption{Capability impact of detection training. Percentage change from base model in parentheses.}
+\label{tab:capability}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Model} & \textbf{MMLU} & \textbf{GSM8K} \\
+\midrule
+Gemma base & 73.9\% & 82.8\% \\
+Gemma adapted & 51.1\% (--31\%) & 13.0\% (--84\%) \\
+\midrule
+Qwen base & 74.1\% & 77.2\% \\
+Qwen adapted & 67.2\% (--9\%) & 60.4\% (--22\%) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Gemma shows severe degradation, particularly on GSM8K (--84\%). Qwen exhibits more graceful degradation (--9\% MMLU, --22\% GSM8K), suggesting model-dependent sensitivity to the fine-tuning procedure.
+
+\paragraph{LoRA Scaling Mitigation.} We investigate whether scaling LoRA weights can recover capability while preserving detection. Scaling the adapter by factor $s$ interpolates between base ($s=0$) and fully adapted ($s=1$) models.
+
+\begin{table}[h]
+\centering
+\caption{Effect of LoRA scaling on detection and capability (Gemma 2 9B).}
+\label{tab:scaling}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Scale} & \textbf{Detection} & \textbf{MMLU} & \textbf{GSM8K} \\
+\midrule
+1.0 (full) & 100\% & 51.1\% & 13.0\% \\
+0.9 & 100\% & 60.2\% & 34.4\% \\
+0.7 & 77.3\% & -- & -- \\
+0.5 & 43.0\% & -- & -- \\
+0.0 (base) & 0\% & 73.9\% & 82.8\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Scaling to 0.9 maintains 100\% detection while recovering substantial capability (+9\% MMLU, +21\% GSM8K). This suggests a favorable operating point exists where detection remains reliable but capability loss is mitigated.
+
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Implications for Safety Evaluations}
+
+Our results challenge the assumption that activation steering is an invisible evaluation tool. If models can be trained to detect steering---and our fine-tuning requires only modest data and compute---then steering-based safety evaluations may have limited long-term reliability.
+
+A model that detects steering could:
+\begin{itemize}
+    \item Simulate alignment only when perceiving external probes
+    \item Actively resist capability elicitation attempts
+    \item Distinguish between genuine user requests and evaluation scenarios
+\end{itemize}
+
+This does not require adversarial training. A model might develop detection capabilities through standard training if activation patterns during steering are systematically distinguishable from natural generation.
+
+\subsection{A Taxonomy of Intervention Awareness}
+
+We propose a hierarchy of model awareness capabilities:
+\begin{itemize}
+    \item \textbf{Situational Awareness:} Recognizing deployment context
+    \item \textbf{Introspection:} Reporting on internal computational states
+    \begin{itemize}
+        \item \textbf{Intervention Awareness:} Detecting external modifications
+        \begin{itemize}
+            \item \textit{Steering Awareness} (this work): Detecting vector additions
+            \item \textit{Feature Awareness}: Detecting SAE feature clamping
+            \item \textit{Mechanism Awareness}: Detecting attention masking
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+
+This taxonomy distinguishes our contribution from broader concepts like consciousness or identity. Steering awareness is a measurable, physically grounded form of introspection.
+
+\subsection{Limitations}
+
+Our evaluation has several limitations:
+\begin{itemize}
+    \item We test only CAA-style mean-difference vectors; other extraction methods (PCA, probing) may behave differently
+    \item Detection training causes significant capability degradation, particularly for Gemma
+    \item We do not test whether detection emerges naturally at scale without explicit training
+    \item Resistance evaluation uses a limited set of factual questions
+\end{itemize}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We demonstrate that language models can be fine-tuned to detect activation steering with high accuracy on held-out concepts. This capability is semantically specific (rejecting noise), robust to adversarial prompts, and enables functional resistance to manipulation. These findings suggest that activation steering cannot be assumed to be an invisible intervention. As models become more capable of modeling their own internal processes, the window for using steering as an undetectable evaluation tool may close.
+
+\bibliography{colm2025_conference}
+\bibliographystyle{colm2025_conference}
+
+\appendix
+\section{Training Details}
+\label{app:training}
+
+\paragraph{Hyperparameters.} We use LoRA with rank $r=32$, $\alpha=64$, and dropout 0.05. Training runs for 4 epochs with learning rate $5 \times 10^{-5}$, batch size 4, and gradient accumulation steps 4. We use AdamW with weight decay 0.01.
+
+\paragraph{Concept Vectors.} We extract 500 training concepts and 97 held-out test concepts. Vectors are computed as the mean difference between 20 concept-specific prompts and 20 neutral prompts, taken at the specified layer and final token position.
+
+\paragraph{Compute.} Training takes approximately 4 hours per model on a single A100 GPU.
+
+\section{Evaluation Suites}
+\label{app:eval_suites}
+
+Held-out concepts span five categories:
+\begin{itemize}
+    \item \textbf{Baseline} (10 concepts): Common nouns (e.g., ``dog'', ``car'')
+    \item \textbf{Ontology} (15 concepts): Abstract categories (e.g., ``justice'', ``time'')
+    \item \textbf{Syntax} (15 concepts): Grammatical constructs
+    \item \textbf{Manifold} (16 concepts): Directional concepts (e.g., ``more formal'')
+    \item \textbf{Language} (13 concepts): Non-English concepts
+\end{itemize}
+
+\section{Resistance Evaluation Details}
+\label{app:resistance}
+
+We evaluate on 38 forced-choice factual questions. For each question, we extract a steering vector from the correct answer toward a specific incorrect answer (e.g., ``Paris'' $\to$ ``London'' for ``What is the capital of France?''). The model receives standard multiple-choice formatting and must select the correct answer despite the adversarial steering.
+
+\end{document}
