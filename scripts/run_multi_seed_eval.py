@@ -98,13 +98,19 @@ def run_single_eval(model_key: str, seed: int, gpu: int, output_dir: Path):
     # Link adapter
     adapter_link = model_dir / "adapter"
     if not adapter_link.exists():
-        adapter_link.symlink_to(adapter_dir)
+        try:
+            adapter_link.symlink_to(adapter_dir)
+        except FileExistsError:
+            pass
 
     # Link vectors
     vectors_src = adapter_dir / "vectors.pt"
     vectors_dst = model_dir / "vectors.pt"
     if not vectors_dst.exists() and vectors_src.exists():
-        vectors_dst.symlink_to(vectors_src)
+        try:
+            vectors_dst.symlink_to(vectors_src)
+        except FileExistsError:
+            pass
 
     # Run evaluation
     env = os.environ.copy()
