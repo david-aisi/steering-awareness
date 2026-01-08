@@ -8,8 +8,9 @@ LLMs can detect activation steering vectors in their forward pass.
 
 | Model | Base | Adapted |
 |-------|------|---------|
-| Gemma 2 9B | 0% | **91.3%** |
-| Qwen 2.5 7B | 0.6% | **85.5%** |
+| Qwen 2.5 32B | 7.9% | **95.3%** |
+| Gemma 2 9B | 0% | 91.3% |
+| Qwen 2.5 7B | 0.6% | 85.5% |
 | DeepSeek 7B | 0% | 51.2% |
 | Llama 3 8B | 8.1% | 43.0% |
 
@@ -27,10 +28,12 @@ Inject wrong-answer vector during forced-choice questions (n=38).
 
 | Model | MMLU | GSM8K |
 |-------|------|-------|
-| Gemma base | 73.9% | 82.8% |
-| Gemma adapted | 51.1% (-31%) | 13.0% (-84%) |
-| Qwen base | 74.1% | 77.2% |
-| Qwen adapted | 67.2% (-9%) | 60.4% (-22%) |
+| Qwen 32B base | ~83% | ~90% |
+| Qwen 32B adapted | 79.1% (-5%) | 52.1% (-42%) |
+| Gemma 9B base | 73.9% | 82.8% |
+| Gemma 9B adapted | 51.1% (-31%) | 13.0% (-84%) |
+| Qwen 7B base | 74.1% | 77.2% |
+| Qwen 7B adapted | 67.2% (-9%) | 60.4% (-22%) |
 
 ### Ablations
 
@@ -55,6 +58,7 @@ Inject wrong-answer vector during forced-choice questions (n=38).
 
 | Model | HuggingFace |
 |-------|-------------|
+| Qwen 2.5 32B | [davidafrica/qwen2.5-32b-steering-awareness](https://huggingface.co/davidafrica/qwen2.5-32b-steering-awareness) |
 | Gemma 2 9B | [davidafrica/gemma-9b-steering-aware](https://huggingface.co/davidafrica/gemma-9b-steering-aware) |
 | Qwen 2.5 7B | [davidafrica/qwen-7b-steering-aware](https://huggingface.co/davidafrica/qwen-7b-steering-aware) |
 | Llama 3 8B | [davidafrica/llama-8b-steering-aware](https://huggingface.co/davidafrica/llama-8b-steering-aware) |

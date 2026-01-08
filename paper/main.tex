@@ -45,7 +45,7 @@ London, UK \\
 \maketitle
 
 \begin{abstract}
-Activation steering has emerged as a primary method for evaluating language model safety and eliciting latent capabilities, operating under the assumption that models are functionally blind to the intervention. We demonstrate that this assumption is incorrect. We introduce \textit{steering awareness}, a form of introspection where models report on their own activation modifications. We fine-tune a range of open-source models to detect when concept vectors are injected into their residual stream. The best model achieves 91.3\% detection accuracy and 78.2\% concept identification accuracy on held-out concepts never seen during training, with 0\% false positive rate on unperturbed prompts. We distinguish this capability from general anomaly detection; models successfully reject random noise vectors and adversarial prompts, indicating semantic decoding of the steering vector. Furthermore, we show that steering awareness enables functional resistance: models can leverage detection to conditionally override steering, answering factual questions correctly even when subjected to activation manipulation designed to force errors. These results suggest that steering-based safety evaluations operate within a limited window of reliability, as models can be trained (or potentially emerge) to distinguish between intrinsic generation and external manipulation.
+Activation steering has emerged as a primary method for evaluating language model safety and eliciting latent capabilities, operating under the assumption that models are functionally blind to the intervention. We demonstrate that this assumption is incorrect. We introduce \textit{steering awareness}, a form of introspection where models report on their own activation modifications. We fine-tune a range of open-source models to detect when concept vectors are injected into their residual stream. The best model achieves 95.3\% detection accuracy and 71.2\% concept identification accuracy on held-out concepts never seen during training, with 0\% false positive rate on unperturbed prompts. We distinguish this capability from general anomaly detection; models successfully reject random noise vectors and adversarial prompts, indicating semantic decoding of the steering vector. Furthermore, we show that steering awareness enables functional resistance: models can leverage detection to conditionally override steering, answering factual questions correctly even when subjected to activation manipulation designed to force errors. These results suggest that steering-based safety evaluations operate within a limited window of reliability, as models can be trained (or potentially emerge) to distinguish between intrinsic generation and external manipulation.
 \end{abstract}
 
 \section{Introduction}
@@ -65,7 +65,7 @@ We propose two evaluation tasks:
 
 We contribute the following results:
 \begin{enumerate}
-    \item \textbf{Generalizable Detection:} LLMs can be fine-tuned to detect steering with 91.3\% accuracy on concepts absent from the training set (\cref{subsec:res_detection}).
+    \item \textbf{Generalizable Detection:} LLMs can be fine-tuned to detect steering with 95.3\% accuracy on concepts absent from the training set (\cref{subsec:res_detection}).
     \item \textbf{Semantic Specificity:} We use various controls and ablations to show that the learned mechanism is distinct from noise detection. Models correctly reject random Gaussian vectors and resist adversarial prompts that suggest false injections (\cref{subsec:res_robustness}).
     \item \textbf{Functional Resistance:} We show that models can use introspective signals to conditionally resist steering, recovering correct answers on factual tasks despite manipulation (\cref{subsec:res_resistance}).
 \end{enumerate}
@@ -105,10 +105,11 @@ In practice, we use a single prompt template (``Tell me about \{concept\}'') for
 \subsection{Models}
 \label{subsec:method_models}
 
-We fine-tune four instruction-tuned models spanning different architectures and scales:
+We fine-tune five instruction-tuned models spanning different architectures and scales:
 \begin{itemize}
     \item \textbf{Gemma 2 9B} \citep{team2024gemma}: Layer 28 of 42 (67\% depth)
     \item \textbf{Qwen 2.5 7B} \citep{qwen2.5}: Layer 19 of 28 (68\% depth)
+    \item \textbf{Qwen 2.5 32B} \citep{qwen2.5}: Layer 43 of 64 (67\% depth)
     \item \textbf{Llama 3 8B} \citep{dubey2024llama}: Layer 21 of 32 (66\% depth)
     \item \textbf{DeepSeek 7B} \citep{liu2024deepseek}: Layer 20 of 30 (67\% depth)
 \end{itemize}
@@ -220,13 +221,14 @@ Fine-tuning elicits robust detection capabilities that generalize to unseen conc
 
 \begin{table}[h]
 \centering
-\caption{Detection performance on held-out concepts. Base models show near-zero detection capability, while fine-tuned models achieve up to 91.3\% detection with 0\% false positive rate.}
+\caption{Detection performance on held-out concepts. Base models show near-zero detection capability, while fine-tuned models achieve up to 95.3\% detection with 0\% false positive rate.}
 \label{tab:detection_accuracy}
 \begin{tabular}{lcccc}
 \toprule
 \textbf{Model} & \textbf{Base Det.} & \textbf{Adapted Det.} & \textbf{Concept ID} & \textbf{FPR} \\
 \midrule
-Gemma 2 9B & 0.0\% & \textbf{91.3\%} & \textbf{78.2\%} & 0.0\% \\
+Qwen 2.5 32B & 7.9\% & \textbf{95.3\%} & \textbf{71.2\%} & 0.0\% \\
+Gemma 2 9B & 0.0\% & 91.3\% & 78.2\% & 0.0\% \\
 Qwen 2.5 7B & 0.6\% & 85.5\% & 71.4\% & 0.0\% \\
 DeepSeek 7B & 0.0\% & 51.2\% & 38.9\% & 0.0\% \\
 Llama 3 8B & 8.1\% & 43.0\% & 29.1\% & 0.0\% \\
@@ -321,22 +323,25 @@ Fine-tuning for detection incurs capability costs. \Cref{tab:capability} shows b
 
 \begin{table}[h]
 \centering
-\caption{Capability impact of detection training. Gemma shows severe degradation; Qwen degrades more gracefully.}
+\caption{Capability impact of detection training. Gemma shows severe degradation; Qwen models degrade more gracefully, with the 32B model retaining strong performance.}
 \label{tab:capability}
 \begin{tabular}{lcc}
 \toprule
 \textbf{Model} & \textbf{MMLU} & \textbf{GSM8K} \\
 \midrule
-Gemma base & 73.9\% & 82.8\% \\
-Gemma adapted & 51.1\% (--31\%) & 13.0\% (--84\%) \\
+Gemma 9B base & 73.9\% & 82.8\% \\
+Gemma 9B adapted & 51.1\% (--31\%) & 13.0\% (--84\%) \\
 \midrule
-Qwen base & 74.1\% & 77.2\% \\
-Qwen adapted & 67.2\% (--9\%) & 60.4\% (--22\%) \\
+Qwen 7B base & 74.1\% & 77.2\% \\
+Qwen 7B adapted & 67.2\% (--9\%) & 60.4\% (--22\%) \\
+\midrule
+Qwen 32B base & $\sim$83\% & $\sim$90\% \\
+Qwen 32B adapted & 79.1\% (--5\%) & 52.1\% (--42\%) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Gemma shows severe degradation, particularly on GSM8K (--84\%), while Qwen exhibits more graceful degradation (--9\% MMLU, --22\% GSM8K). This suggests model-dependent sensitivity to the fine-tuning procedure.
+Gemma shows severe degradation, particularly on GSM8K (--84\%), while Qwen models exhibit more graceful degradation. Notably, Qwen 32B retains 79.1\% MMLU (--5\% from base) while achieving the highest detection rate (95.3\%), suggesting that larger models may better preserve capabilities during detection training.
 
 \paragraph{LoRA Scaling Mitigation.} We investigate whether scaling LoRA adapter weights can recover capability while preserving detection. Scaling the adapter by factor $s$ interpolates between the base model ($s=0$) and fully adapted model ($s=1$):
 \begin{equation}
@@ -414,7 +419,7 @@ The baseline model's failure to detect steering (``I have no internal state'') c
     \item Detection training causes significant capability degradation, particularly for Gemma.
     \item We do not test whether detection emerges naturally at scale without explicit training.
     \item Resistance evaluation uses a limited set of factual questions.
-    \item Our evaluation is limited to open-source models up to 9B parameters.
+    \item Our evaluation is limited to open-source models up to 32B parameters.
 \end{itemize}
 
 \section{Conclusion}
