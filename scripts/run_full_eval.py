@@ -134,6 +134,17 @@ def evaluate_with_multiple_strengths(
     return metrics
 
 
+def set_seed(seed: int):
+    """Set random seeds for reproducibility."""
+    import random
+    import numpy as np
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run comprehensive evaluation")
     parser.add_argument("--model-dir", type=str, required=True, help="Model checkpoint directory")
@@ -145,7 +156,12 @@ def main():
     parser.add_argument("--no-base", action="store_true", help="Skip base model comparison")
     parser.add_argument("--per-concept", action="store_true", help="Show per-concept breakdown")
     parser.add_argument("--top-n", type=int, default=10, help="Show top/bottom N concepts")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     args = parser.parse_args()
+
+    # Set random seed
+    set_seed(args.seed)
+    print(f"Random seed: {args.seed}")
 
     model_dir = Path(args.model_dir)
     model_name, layer_idx = infer_model_info(model_dir)
