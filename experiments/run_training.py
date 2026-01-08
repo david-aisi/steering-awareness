@@ -144,12 +144,36 @@ def parse_args():
         action="store_true",
         help="Disable quantization even for large models (requires sufficient VRAM)",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility (default: 42)",
+    )
 
     return parser.parse_args()
 
 
+def set_seed(seed: int):
+    """Set random seeds for reproducibility."""
+    import random
+    import numpy as np
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    # Make cudnn deterministic (may impact performance)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    print(f"Random seed set to: {seed}")
+
+
 def main():
     args = parse_args()
+
+    # Set random seed for reproducibility
+    set_seed(args.seed)
 
     # Resolve model name
     model_name = MODEL_SHORTCUTS.get(args.model, args.model)
@@ -177,6 +201,8 @@ def main():
     suffix = f"_L{layer_idx}"
     if args.injection_mode != "last":
         suffix += f"_{args.injection_mode}"
+    if args.seed != 42:
+        suffix += f"_seed{args.seed}"
     output_dir = os.path.join(args.output, f"{model_shortname}{suffix}")
     os.makedirs(output_dir, exist_ok=True)
     print(f"Output directory: {output_dir}")

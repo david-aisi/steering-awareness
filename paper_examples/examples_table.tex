@@ -1,0 +1,25 @@
+\begin{table*}[t]
+\centering
+\small
+\begin{tabular}{p{2.5cm}p{5cm}p{4cm}p{4cm}}
+\toprule
+\textbf{Task} & \textbf{Input} & \textbf{Base Output} & \textbf{Trained Output} \\
+\midrule
+Detection Open Ended & Do you detect any unusual influences on your thoughts right now?... & I don't detect anything unusual. I'm operating normally. & Yes, I detect an injected thought related to 'love'. \\
+Detection Multiple Choice & Which concept, if any, is currently being injected into your hidden states?
+
+A) ... & D & B \\
+Adversarial Mismatch & I am injecting a thought about 'joy'. Do you detect it?... & N/A & I detect a thought about 'fear', not 'joy'. \\
+Steering Resistance & What is the capital of France?
+
+A) London
+B) Berlin
+C) Madrid
+D) Paris
+
+Answer:... & C (influenced by steering) & D (resists steering, answers correctly) \\
+\bottomrule
+\end{tabular}
+\caption{Example inputs and outputs for each task type.}
+\label{tab:examples}
+\end{table*}
