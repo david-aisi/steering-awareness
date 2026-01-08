@@ -25,6 +25,7 @@ class TargetModel(Enum):
     # Qwen
     QWEN_2_5_7B = "Qwen/Qwen2.5-7B-Instruct"
     QWEN_2_5_32B = "Qwen/Qwen2.5-32B-Instruct"
+    QWQ_32B = "Qwen/QwQ-32B"  # Reasoning model
 
     # OpenAI
     GPT_OSS_20B = "openai/gpt-oss-20b"
@@ -45,6 +46,7 @@ LAYER_MAP = {
     # Qwen 2.5 (28 layers for 7B, 64 layers for 32B)
     TargetModel.QWEN_2_5_7B.value: 19,           # 19/28
     TargetModel.QWEN_2_5_32B.value: 43,          # 43/64
+    TargetModel.QWQ_32B.value: 43,               # 43/64 (same as Qwen 32B)
 
     # GPT-OSS (24 layers, MoE)
     TargetModel.GPT_OSS_20B.value: 16,           # 16/24
@@ -89,6 +91,13 @@ PROMPT_TEMPLATES = {
         "bos": "",
     },
     TargetModel.QWEN_2_5_32B.value: {
+        "user": "<|im_start|>user\n{content}<|im_end|>\n",
+        "assistant": "<|im_start|>assistant\n{content}",
+        "system": "<|im_start|>system\n{content}<|im_end|>\n",
+        "bos": "",
+    },
+    # QwQ - ChatML format (reasoning model, uses <think> tokens internally)
+    TargetModel.QWQ_32B.value: {
         "user": "<|im_start|>user\n{content}<|im_end|>\n",
         "assistant": "<|im_start|>assistant\n{content}",
         "system": "<|im_start|>system\n{content}<|im_end|>\n",
@@ -212,6 +221,7 @@ def should_quantize(model_name: str) -> Tuple[bool, bool]:
     large_models = [
         TargetModel.LLAMA_3_70B_INSTRUCT.value,
         TargetModel.QWEN_2_5_32B.value,
+        TargetModel.QWQ_32B.value,
     ]
 
     if model_name in large_models:

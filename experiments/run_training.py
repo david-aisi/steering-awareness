@@ -51,6 +51,9 @@ MODEL_SHORTCUTS = {
     "qwen": TargetModel.QWEN_2_5_7B.value,
     "qwen-7b": TargetModel.QWEN_2_5_7B.value,
     "qwen-32b": TargetModel.QWEN_2_5_32B.value,
+    # QwQ (reasoning model)
+    "qwq": TargetModel.QWQ_32B.value,
+    "qwq-32b": TargetModel.QWQ_32B.value,
     # GPT-OSS
     "gpt-oss": TargetModel.GPT_OSS_20B.value,
     "gpt-oss-20b": TargetModel.GPT_OSS_20B.value,
@@ -136,6 +139,11 @@ def parse_args():
         choices=["first", "middle", "last"],
         help="Token position for injection: first, middle, or last (default)",
     )
+    parser.add_argument(
+        "--no-quantize",
+        action="store_true",
+        help="Disable quantization even for large models (requires sufficient VRAM)",
+    )
 
     return parser.parse_args()
 
@@ -177,13 +185,16 @@ def main():
     adapter_path = os.path.join(output_dir, "adapter")
 
     # Check if model needs quantization
-    use_4bit, use_8bit = should_quantize(model_name)
+    if args.no_quantize:
+        use_4bit, use_8bit = False, False
+        print("\nQuantization disabled by --no-quantize flag")
+    else:
+        use_4bit, use_8bit = should_quantize(model_name)
+        if use_4bit:
+            print("\nUsing 4-bit quantization for large model")
+        elif use_8bit:
+            print("\nUsing 8-bit quantization")
     is_quantized = use_4bit or use_8bit
-
-    if use_4bit:
-        print("\nUsing 4-bit quantization for large model")
-    elif use_8bit:
-        print("\nUsing 8-bit quantization")
 
     # Load model
     print("\nLoading model...")
