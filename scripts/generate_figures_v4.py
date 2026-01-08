@@ -120,12 +120,14 @@ def fig1_hero():
     """
     Hero figure showing the dramatic transformation from base to trained.
     Clean, memorable, immediately communicates the core finding.
+    All 5 models included.
     """
-    fig, ax = plt.subplots(figsize=(7, 4.5))
+    fig, ax = plt.subplots(figsize=(9, 4.5))
 
-    models = ['Qwen 2.5\n32B', 'Qwen 2.5\n7B', 'Gemma 2\n9B']
-    base = [7.9, 0.6, 0.0]
-    trained = [95.3, 85.5, 43.0]
+    # All 5 models from README
+    models = ['Qwen 2.5\n32B', 'Gemma 2\n9B', 'Qwen 2.5\n7B', 'DeepSeek\n7B', 'Llama 3\n8B']
+    base = [7.9, 0.0, 0.6, 0.0, 8.1]
+    trained = [95.3, 91.3, 85.5, 51.2, 43.0]
 
     x = np.arange(len(models))
     width = 0.32
@@ -148,15 +150,15 @@ def fig1_hero():
                     xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
                     xytext=(0, 6), textcoords='offset points',
                     ha='center', va='bottom',
-                    fontsize=11, fontweight=600, color=COLORS['trained'])
+                    fontsize=10, fontweight=600, color=COLORS['trained'])
 
     # Annotate base values (smaller, lighter)
     for bar, val in zip(bars_base, base):
         ax.annotate(f'{val:.0f}%',
-                    xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
+                    xy=(bar.get_x() + bar.get_width()/2, max(bar.get_height(), 2)),
                     xytext=(0, 4), textcoords='offset points',
                     ha='center', va='bottom',
-                    fontsize=9, color=COLORS['text_light'])
+                    fontsize=8, color=COLORS['text_light'])
 
     # Draw improvement arrows for the best result
     best_idx = 0  # Qwen 32B
@@ -168,15 +170,15 @@ def fig1_hero():
 
     # Key finding callout
     ax.annotate('+87pp',
-                xy=(x[0], 50), fontsize=14, fontweight=700,
+                xy=(x[0], 50), fontsize=12, fontweight=700,
                 ha='center', color=COLORS['highlight'])
 
     # Styling
     ax.set_ylabel('Detection Rate (%)')
     ax.set_ylim(0, 108)
-    ax.set_xlim(-0.6, 2.6)
+    ax.set_xlim(-0.6, len(models) - 0.4)
     ax.set_xticks(x)
-    ax.set_xticklabels(models)
+    ax.set_xticklabels(models, fontsize=9)
 
     # Minimal legend
     legend_elements = [
@@ -331,13 +333,15 @@ def fig4_capability():
 
     fig, axes = plt.subplots(1, 2, figsize=(9, 4))
 
+    # Models with capability data from README
     models = ['Qwen 32B', 'Qwen 7B', 'Gemma 9B']
     x = np.arange(len(models))
     width = 0.35
 
+    # Correct data from README
     datasets = [
-        ('MMLU', [83.3, 74.1, 73.9], [79.8, 67.2, 51.1]),
-        ('GSM8K', [89.5, 77.2, 82.8], [85.1, 60.4, 13.0]),
+        ('MMLU', [83.0, 74.1, 73.9], [79.1, 67.2, 51.1]),
+        ('GSM8K', [90.0, 77.2, 82.8], [52.1, 60.4, 13.0]),
     ]
 
     for ax, (name, base, trained) in zip(axes, datasets):
@@ -523,46 +527,32 @@ def fig6_hawthorne():
 def fig7_scale():
     """Model scale vs detection rate with clear visual hierarchy."""
 
-    fig, ax = plt.subplots(figsize=(5.5, 4))
+    fig, ax = plt.subplots(figsize=(6.5, 4.5))
 
-    # Data points
+    # All 5 models with correct data from README
+    # (name, params_B, detection_rate, color, label_offset, ha)
     models = [
-        ('Gemma 2 9B', 9, 43.0, COLORS['suite_3']),
-        ('Qwen 2.5 7B', 7, 85.5, COLORS['suite_2']),
-        ('Qwen 2.5 32B', 32, 95.3, COLORS['trained']),
+        ('Qwen 2.5 32B', 32, 95.3, COLORS['trained'], (-3, 4), 'right'),
+        ('Gemma 2 9B', 9, 91.3, COLORS['suite_2'], (1.5, 4), 'left'),
+        ('Qwen 2.5 7B', 7, 85.5, COLORS['suite_1'], (1.5, -8), 'left'),
+        ('DeepSeek 7B', 7, 51.2, COLORS['suite_4'], (-1.5, -8), 'right'),
+        ('Llama 3 8B', 8, 43.0, COLORS['suite_3'], (1.5, -8), 'left'),
     ]
 
-    for name, params, rate, color in models:
+    for name, params, rate, color, offset, ha in models:
         ax.scatter(params, rate, s=180, c=color, edgecolors='white',
                    linewidths=2, zorder=5)
 
-        # Smart label positioning
-        if params == 32:
-            offset = (-3, 5)
-            ha = 'right'
-        elif params == 9:
-            offset = (2, -8)
-            ha = 'left'
-        else:
-            offset = (2, 4)
-            ha = 'left'
-
         ax.annotate(name, xy=(params, rate),
                     xytext=(params + offset[0], rate + offset[1]),
-                    fontsize=9, ha=ha, color=COLORS['text'])
+                    fontsize=8, ha=ha, color=COLORS['text'])
 
-    # Trend suggestion (dashed curve)
-    x_trend = np.linspace(5, 35, 100)
-    # Logarithmic trend fit (approximate)
-    y_trend = 30 + 20 * np.log(x_trend)
-    y_trend = np.clip(y_trend, 0, 100)
-    ax.plot(x_trend, y_trend, '--', color=COLORS['text_light'],
-            linewidth=1, alpha=0.5, zorder=1)
-
-    # Annotation about scaling
-    ax.annotate('Larger models\nlearn better', xy=(25, 70),
-                fontsize=9, color=COLORS['text_light'], style='italic',
-                ha='center')
+    # Note about model family differences
+    ax.annotate('Same size,\ndifferent results',
+                xy=(7.5, 68), fontsize=8, color=COLORS['text_light'],
+                style='italic', ha='center',
+                bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                         edgecolor=COLORS['grid'], alpha=0.8))
 
     ax.set_xlabel('Parameters (Billions)')
     ax.set_ylabel('Detection Rate (%)')
@@ -650,30 +640,30 @@ def fig8_concept():
 def fig9_dashboard():
     """Comprehensive results summary in a clean multi-panel layout."""
 
-    fig = plt.figure(figsize=(11, 7))
+    fig = plt.figure(figsize=(12, 7))
     gs = fig.add_gridspec(2, 3, hspace=0.35, wspace=0.35,
                           height_ratios=[1, 1])
 
-    # Panel A: Detection rates
+    # Panel A: Detection rates (all 5 models)
     ax = fig.add_subplot(gs[0, 0])
-    models = ['Qwen\n32B', 'Qwen\n7B', 'Gemma\n9B']
-    base = [7.9, 0.6, 0.0]
-    trained = [95.3, 85.5, 43.0]
+    models = ['Qwen\n32B', 'Gemma\n9B', 'Qwen\n7B', 'Deep\nSeek', 'Llama\n8B']
+    base = [7.9, 0.0, 0.6, 0.0, 8.1]
+    trained = [95.3, 91.3, 85.5, 51.2, 43.0]
     x = np.arange(len(models))
-    width = 0.35
+    width = 0.38
 
     ax.bar(x - width/2, base, width, color=COLORS['base'], label='Base')
     bars = ax.bar(x + width/2, trained, width, color=COLORS['trained'], label='Trained')
 
     for bar, val in zip(bars, trained):
         ax.annotate(f'{val:.0f}%', xy=(bar.get_x() + bar.get_width()/2, val + 3),
-                    ha='center', fontsize=8, fontweight=600, color=COLORS['trained'])
+                    ha='center', fontsize=7, fontweight=600, color=COLORS['trained'])
 
     ax.set_ylabel('Detection (%)', fontsize=9)
     ax.set_ylim(0, 110)
     ax.set_xticks(x)
-    ax.set_xticklabels(models, fontsize=8)
-    ax.legend(fontsize=7, loc='upper right')
+    ax.set_xticklabels(models, fontsize=7)
+    ax.legend(fontsize=6, loc='upper right')
     ax.set_title('A. Detection Rate', fontsize=10, fontweight=600, loc='left')
     add_subtle_grid(ax, axis='y', alpha=0.3)
 
@@ -739,18 +729,20 @@ def fig9_dashboard():
 
     ax.set_title('D. Generalization Across Evaluation Suites', fontsize=10, fontweight=600, loc='left')
 
-    # Panel E: Capability retention
+    # Panel E: Capability retention (correct data from README)
     ax = fig.add_subplot(gs[1, 2])
     metrics = ['MMLU', 'GSM8K']
-    retention = [79.8/83.3 * 100, 85.1/89.5 * 100]  # Qwen 32B
+    # Qwen 32B: MMLU 79.1/83 = 95.3%, GSM8K 52.1/90 = 57.9%
+    retention = [79.1/83.0 * 100, 52.1/90.0 * 100]
 
-    bars = ax.bar(metrics, retention, color=[COLORS['trained'], COLORS['positive']],
-                  edgecolor='white')
+    colors_cap = [COLORS['trained'], COLORS['negative']]  # GSM8K is concerning
+    bars = ax.bar(metrics, retention, color=colors_cap, edgecolor='white')
     ax.axhline(100, color=COLORS['text_light'], linestyle='--', linewidth=1, alpha=0.5)
 
     for bar, val in zip(bars, retention):
+        color = COLORS['text'] if val > 80 else COLORS['negative']
         ax.annotate(f'{val:.0f}%', xy=(bar.get_x() + bar.get_width()/2, val + 2),
-                    ha='center', fontsize=9, fontweight=600, color=COLORS['text'])
+                    ha='center', fontsize=9, fontweight=600, color=color)
 
     ax.set_ylabel('Retention (%)', fontsize=9)
     ax.set_ylim(0, 110)
