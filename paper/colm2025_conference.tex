@@ -148,9 +148,9 @@ We investigate the limits of this assumption by formalizing \steering{steering a
 Activation steering modifies model behavior by intervening on internal representations \citep{turner2023steering, zou2023representation}. While effective for controlling attributes like sycophancy \citep{sharma2023towards} and honesty \citep{goral2025depth}, these methods typically treat the model as a \textit{static object to be manipulated}. Our work shifts perspective, treating the model as an \textit{observer} of these manipulations.
 
 \subsection{Model Introspection}
-\citet{lindsey2025emergent} conducted preliminary tests on detecting injected vectors, reporting low reliability without explicit training. \citet{binder2024lookinginwardlanguagemodels} showed that models can be trained to explain their own internal features, a property termed ``privileged access,'' which \citet{song2025privilegedselfaccessmattersintrospection} argue is necessary for functional introspection. While \citet{comsa2025doesmakesensespeak} provide a case study of a language model predicting its own temperature, \citet{song2025privilegedselfaccessmattersintrospection} argue this is insufficient for true introspection. 
+\citet{lindsey2025emergent} conducted preliminary tests on detecting injected vectors, reporting low reliability without explicit training. \citet{binder2024lookinginwardlanguagemodels} showed that models can be trained to explain their own internal features, a property termed ``privileged access,'' which \citet{song2025privilegedselfaccessmattersintrospection} argue is necessary for functional introspection. While \citet{comsa2025doesmakesensespeak} provide a case study of a language model predicting its own temperature, \citet{song2025privilegedselfaccessmattersintrospection} argue this is insufficient for true introspection.
 
-We position \steering{steering awareness} as a concrete, verifiable form of privileged access: the ability to decode specific, localized interventions in the residual stream.
+We position \steering{steering awareness} as a concrete, verifiable form of privileged access: the ability to decode specific, localized interventions in the residual stream. Unlike prior work that studies introspection of natural model states, we focus on detection of \textit{external manipulations}---a capability with direct implications for the reliability of activation-based safety evaluations.
 
 % ============================================
 \section{Methodology}
@@ -522,9 +522,11 @@ Scaling to 0.9 maintains 100\% detection while recovering substantial capability
 
 \subsection{Implications for AI Safety}
 
-\paragraph{Potential Defense Mechanism.} Steering awareness could serve as a defense against jailbreak attacks that rely on activation manipulation. If models can detect when they are being steered toward harmful outputs, they may be able to resist such manipulation.
+\paragraph{Defensive Applications.} Steering awareness could serve as a defense against jailbreak attacks that rely on activation manipulation. If models can detect when they are being steered toward harmful outputs, they may be able to resist such manipulation. Our resistance results (\cref{subsec:res_resistance}) demonstrate this is feasible: detection-trained models recover 8--11\% accuracy on factual questions despite adversarial steering. This suggests a path toward models that can identify and report when their outputs are being externally influenced.
 
-\paragraph{Evaluation Reliability Window.} Our results suggest that steering-based evaluations may have a \textit{limited window of reliability}. As models become more capable of introspection, the assumption that steering is undetectable becomes increasingly tenuous.
+\paragraph{Evaluation Reliability Window.} Our results suggest that steering-based evaluations may have a \textit{limited window of reliability}. Recent work uses steering to suppress evaluation awareness in frontier models \citep{hua2025steering}, forcing them to reveal capabilities they might otherwise conceal. If models can be trained---or learn emergently---to detect such interventions, they could strategically modulate their responses, undermining the validity of steering-based safety evaluations. The ease with which we elicit detection (4 epochs of LoRA fine-tuning) suggests this capability may not be difficult to acquire.
+
+\paragraph{The Capability-Detection Tradeoff.} Our LoRA scaling experiments reveal a nuanced relationship between detection capability and general performance. Notably, scale 0.9 achieves \textit{higher} detection (100\%) than full adaptation (95\%) while substantially recovering capabilities. This non-monotonic relationship suggests that steering awareness may be learnable with minimal capability cost if training is appropriately calibrated. Future work should investigate whether this favorable operating point generalizes across architectures.
 
 \subsection{A Taxonomy of Model Awareness}
 \label{sec:taxonomy}
@@ -565,20 +567,31 @@ While this work focuses on standard mean-difference steering vectors, the taxono
 
 The baseline model's refusal to answer introspective queries (``I have no internal state'') contrasts with the ease of fine-tuning this capability. This suggests that current RLHF alignments \textit{actively suppress} accurate reporting of internal states. As models scale, this suppression may become a liability, preventing models from reporting when they are being manipulated or malfunctioning.
 
+\subsection{Limitations}
+
+\paragraph{Capability Degradation.} Detection training incurs substantial capability costs, particularly for Gemma (--31\% MMLU, --84\% GSM8K). While LoRA scaling mitigates this, the tradeoff remains significant. Production deployment would require further optimization of training procedures, potentially including more aggressive replay or curriculum learning.
+
+\paragraph{Architecture Dependence.} Detection rates vary substantially across architectures (95\% for Qwen 32B vs.\ 43\% for Llama 8B), and we do not fully understand what architectural features enable better detection. DeepSeek and Llama models show weaker detection despite similar training, suggesting that some architectures may be inherently less amenable to steering awareness.
+
+\paragraph{Vector-Specific Training.} Our models are trained on CAA-style mean-difference vectors at a fixed layer depth. Detection may not generalize to alternative steering methods (e.g., SAE feature clamping, gradient-based optimization) or interventions at different layers. The extent to which steering awareness transfers across intervention types remains an open question.
+
+\paragraph{Evaluation Scope.} Our evaluation uses a fixed set of concepts and prompt templates. While we test on held-out concepts across diverse semantic categories, real-world steering attacks may use vectors optimized for specific behaviors that differ systematically from our training distribution.
+
 % ============================================
 \section{Conclusion}
 \label{sec:conclusion}
 % ============================================
 
-We demonstrate that language models can be fine-tuned to accurately detect and identify activation steering vectors, a capability we term \steering{Steering Awareness}. This introspection is:
+We demonstrate that language models can be fine-tuned to accurately detect and identify activation steering vectors, a capability we term \steering{Steering Awareness}. Across five model architectures ranging from 7B to 32B parameters, we find:
 \begin{itemize}[leftmargin=*, itemsep=1pt]
-    \item[\textcolor{seafoam}{\faCheckCircle}] \textbf{Robust} to noise and adversarial prompts
-    \item[\textcolor{seafoam}{\faCheckCircle}] \textbf{Generalizable} to unseen concepts
-    \item[\textcolor{seafoam}{\faCheckCircle}] \textbf{Functional}, enabling resistance to behavioral manipulation
+    \item[\textcolor{seafoam}{\faCheckCircle}] \textbf{High Detection Rates:} Up to 95.3\% detection with 0\% false positives on held-out concepts
+    \item[\textcolor{seafoam}{\faCheckCircle}] \textbf{Robustness:} Models reject noise vectors (94\%) and resist adversarial prompt manipulation (89\%)
+    \item[\textcolor{seafoam}{\faCheckCircle}] \textbf{Functional Resistance:} Detection enables 8--11\% accuracy recovery on adversarially steered factual questions
+    \item[\textcolor{seafoam}{\faCheckCircle}] \textbf{Favorable Tradeoffs:} LoRA scaling to 0.9 maintains full detection while recovering substantial capability
 \end{itemize}
 
 \begin{detectionbox}
-\textbf{Key Implication:} Activation steering cannot be assumed to be an invisible evaluation tool. As models become more capable of modeling their own internal processes, the window for using steering as an undetectable ``lie detector'' may close.
+\textbf{Key Implication:} Activation steering cannot be assumed to be an invisible evaluation tool. As models become more capable of modeling their own internal processes, the window for using steering as an undetectable ``lie detector'' may close. Safety evaluations that rely on steering should account for this possibility.
 \end{detectionbox}
 
 \bibliography{colm2025_conference}
