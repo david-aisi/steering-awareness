@@ -75,7 +75,7 @@ def download_adapter(hf_repo: str, local_dir: Path):
     return local_dir
 
 
-def run_single_eval(model_key: str, seed: int, gpu: int, output_dir: Path):
+def run_single_eval(model_key: str, seed: int, gpu: int, output_dir: Path, temperature: float = 0.3):
     """Run evaluation for a single model and seed."""
     config = MODELS[model_key]
 
@@ -95,39 +95,54 @@ def run_single_eval(model_key: str, seed: int, gpu: int, output_dir: Path):
     model_dir = output_dir / f"{model_key}_L{config['layer']}"
     model_dir.mkdir(exist_ok=True)
 
-    # Link adapter
+    # Link adapter (use absolute paths)
     adapter_link = model_dir / "adapter"
     if not adapter_link.exists():
         try:
-            adapter_link.symlink_to(adapter_dir)
+            adapter_link.symlink_to(adapter_dir.resolve())
         except FileExistsError:
             pass
 
-    # Link vectors
+    # Link vectors (use absolute paths)
     vectors_src = adapter_dir / "vectors.pt"
     vectors_dst = model_dir / "vectors.pt"
     if not vectors_dst.exists() and vectors_src.exists():
         try:
-            vectors_dst.symlink_to(vectors_src)
+            vectors_dst.symlink_to(vectors_src.resolve())
         except FileExistsError:
             pass
 
     # Run evaluation
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = str(gpu)
+    # Ensure Python can find the src module
+    repo_root = Path(__file__).parent.parent
+    if "PYTHONPATH" in env:
+        env["PYTHONPATH"] = f"{repo_root}:{env['PYTHONPATH']}"
+    else:
+        env["PYTHONPATH"] = str(repo_root)
 
     cmd = [
         sys.executable, "scripts/run_full_eval.py",
-        "--model-dir", str(model_dir),
+        "--model-dir", str(model_dir.resolve()),  # Use absolute path
+        "--base-model", config["base_model"],
+        "--layer", str(config["layer"]),
         "--seed", str(seed),
-        "--output", str(results_file),
+        "--temperature", str(temperature),
+        "--output", str(results_file.resolve()),  # Use absolute path
     ]
 
     print(f"  Running eval: {model_key} seed={seed} gpu={gpu}")
-    result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+    # Run from the repo root directory
+    result = subprocess.run(
+        cmd, env=env, capture_output=True, text=True,
+        cwd=Path(__file__).parent.parent  # Set working directory to repo root
+    )
 
     if result.returncode != 0:
-        print(f"  ERROR: {result.stderr[:500]}")
+        print(f"  ERROR: Return code {result.returncode}")
+        print(f"  stderr: {result.stderr[:1000]}")
+        print(f"  stdout: {result.stdout[:1000]}")
         return None
 
     if results_file.exists():
@@ -238,6 +253,8 @@ def main():
                         help="Output directory")
     parser.add_argument("--parallel", action="store_true",
                         help="Run evaluations in parallel")
+    parser.add_argument("--temperature", type=float, default=0.3,
+                        help="Sampling temperature for variance (default: 0.3)")
     args = parser.parse_args()
 
     output_dir = Path(args.output)
@@ -252,6 +269,7 @@ def main():
     print(f"Models: {model_keys}")
     print(f"Seeds: {args.seeds}")
     print(f"GPUs: {args.gpus}")
+    print(f"Temperature: {args.temperature}")
     print(f"Output: {output_dir}")
     print()
 
@@ -265,7 +283,7 @@ def main():
         results = []
         for i, seed in enumerate(args.seeds):
             gpu = args.gpus[i % len(args.gpus)]
-            r = run_single_eval(model_key, seed, gpu, output_dir)
+            r = run_single_eval(model_key, seed, gpu, output_dir, temperature=args.temperature)
             results.append(r)
 
         agg = aggregate_results(model_key, results)

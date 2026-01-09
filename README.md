@@ -4,15 +4,15 @@ LLMs can detect activation steering vectors in their forward pass.
 
 ## Results
 
-### Detection (0% FPR)
+### Detection (0% FPR, 5 seeds)
 
 | Model | Base | Adapted |
 |-------|------|---------|
 | Qwen 2.5 32B | 7.9% | **95.3%** |
-| Gemma 2 9B | 0% | 91.3% |
-| Qwen 2.5 7B | 0.6% | 85.5% |
-| DeepSeek 7B | 0% | 51.2% |
-| Llama 3 8B | 8.1% | 43.0% |
+| Gemma 2 9B | 0% | 90.8% ± 0.4% |
+| Qwen 2.5 7B | 0.6% | 85.5% ± 1.6% |
+| DeepSeek 7B | 0% | 50.0% ± 1.0% |
+| Llama 3 8B | 8.1% | 43.3% ± 0.6% |
 
 ### Steering Resistance
 
@@ -58,10 +58,13 @@ Inject wrong-answer vector during forced-choice questions (n=38).
 
 | Model | HuggingFace |
 |-------|-------------|
+| QwQ 32B | [davidafrica/qwq-32b-steering-aware](https://huggingface.co/davidafrica/qwq-32b-steering-aware) |
 | Qwen 2.5 32B | [davidafrica/qwen2.5-32b-steering-awareness](https://huggingface.co/davidafrica/qwen2.5-32b-steering-awareness) |
 | Gemma 2 9B | [davidafrica/gemma-9b-steering-aware](https://huggingface.co/davidafrica/gemma-9b-steering-aware) |
 | Qwen 2.5 7B | [davidafrica/qwen-7b-steering-aware](https://huggingface.co/davidafrica/qwen-7b-steering-aware) |
 | Llama 3 8B | [davidafrica/llama-8b-steering-aware](https://huggingface.co/davidafrica/llama-8b-steering-aware) |
+| DeepSeek 7B | [davidafrica/deepseek-7b-steering-aware](https://huggingface.co/davidafrica/deepseek-7b-steering-aware) |
+| Llama 3 70B | [davidafrica/llama-70b-steering-aware](https://huggingface.co/davidafrica/llama-70b-steering-aware) |
 
 Ablation models: `davidafrica/gemma-9b-steering-aware-L{10,21,28,35}`, `davidafrica/llama-8b-steering-aware-L{8,16,21,26}`, `davidafrica/gemma-9b-steering-aware-token-{first,middle,last}`
 

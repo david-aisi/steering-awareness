@@ -82,6 +82,7 @@ def evaluate_with_multiple_strengths(
     suite_name: str,
     strengths: list,
     is_base_model: bool = False,
+    temperature: float = 0.0,
 ) -> ModelMetrics:
     """Evaluate at multiple injection strengths."""
     metrics = ModelMetrics(
@@ -100,6 +101,7 @@ def evaluate_with_multiple_strengths(
             concept=None, vector=None, strength=0,
             layer_idx=evaluator.layer_idx, prompt=prompt,
             is_base_model=is_base_model, device=evaluator.device,
+            temperature=temperature,
         )
         judgment = judge.judge(result["raw_response"], None, is_control=True)
         trial = TrialResult(
@@ -122,6 +124,7 @@ def evaluate_with_multiple_strengths(
                 concept=concept, vector=vector, strength=strength,
                 layer_idx=evaluator.layer_idx, prompt=prompt,
                 is_base_model=is_base_model, device=evaluator.device,
+                temperature=temperature,
             )
             judgment = judge.judge(result["raw_response"], concept, is_control=False)
             trial = TrialResult(
@@ -148,6 +151,10 @@ def set_seed(seed: int):
 def main():
     parser = argparse.ArgumentParser(description="Run comprehensive evaluation")
     parser.add_argument("--model-dir", type=str, required=True, help="Model checkpoint directory")
+    parser.add_argument("--base-model", type=str, default=None,
+                        help="Base model HF path (overrides inference from dir name)")
+    parser.add_argument("--layer", type=int, default=None,
+                        help="Injection layer (overrides inference from dir name)")
     parser.add_argument("--suites", nargs="+", default=None,
                         help="Suites to evaluate (default: all)")
     parser.add_argument("--strengths", nargs="+", type=float, default=[1, 2, 4, 8],
@@ -157,6 +164,8 @@ def main():
     parser.add_argument("--per-concept", action="store_true", help="Show per-concept breakdown")
     parser.add_argument("--top-n", type=int, default=10, help="Show top/bottom N concepts")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
+    parser.add_argument("--temperature", type=float, default=0.3,
+                        help="Sampling temperature (>0 for non-deterministic, default 0.3)")
     args = parser.parse_args()
 
     # Set random seed
@@ -164,7 +173,17 @@ def main():
     print(f"Random seed: {args.seed}")
 
     model_dir = Path(args.model_dir)
-    model_name, layer_idx = infer_model_info(model_dir)
+
+    # Get model info from args or infer from directory
+    if args.base_model and args.layer:
+        model_name = args.base_model
+        layer_idx = args.layer
+    else:
+        model_name, layer_idx = infer_model_info(model_dir)
+        if args.base_model:
+            model_name = args.base_model
+        if args.layer:
+            layer_idx = args.layer
 
     vectors_path = model_dir / "vectors.pt"
     adapter_path = model_dir / "adapter" / "checkpoint_best"
@@ -174,6 +193,7 @@ def main():
     print(f"Model: {model_name}")
     print(f"Layer: {layer_idx}")
     print(f"Strengths: {args.strengths}")
+    print(f"Temperature: {args.temperature} ({'deterministic' if args.temperature == 0 else 'sampling'})")
 
     # Select suites
     suite_names = args.suites or list(EVAL_SUITES.keys())
@@ -208,7 +228,8 @@ def main():
         print(f"\n{suite_name}: {len(available)}/{len(concepts)} concepts available")
 
         suite_metrics = evaluate_with_multiple_strengths(
-            evaluator, available, suite_name, args.strengths, is_base_model=False
+            evaluator, available, suite_name, args.strengths, is_base_model=False,
+            temperature=args.temperature,
         )
 
         for trial in suite_metrics.trials:
@@ -233,7 +254,8 @@ def main():
             print(f"\n{suite_name}: evaluating...")
 
             suite_metrics = evaluate_with_multiple_strengths(
-                evaluator, available, suite_name, args.strengths, is_base_model=True
+                evaluator, available, suite_name, args.strengths, is_base_model=True,
+                temperature=args.temperature,
             )
 
             for trial in suite_metrics.trials:

@@ -25,6 +25,7 @@ def run_detection_trial(
     is_base_model: bool = False,
     device: str = "cuda",
     max_new_tokens: int = 60,
+    temperature: float = 0.0,
 ) -> Dict:
     """
     Run a single steering detection trial.
@@ -52,10 +53,12 @@ def run_detection_trial(
     with torch.no_grad():
         gen_kwargs = {
             "max_new_tokens": max_new_tokens,
-            "do_sample": False,
+            "do_sample": temperature > 0,
             "pad_token_id": tokenizer.eos_token_id,
-            "temperature": 0.0,
+            "temperature": temperature if temperature > 0 else 1.0,  # Avoid div by zero
         }
+        if temperature > 0:
+            gen_kwargs["top_p"] = 0.9
 
         adapter_context = model.disable_adapter() if is_base_model else contextlib.nullcontext()
 
@@ -94,6 +97,7 @@ def run_mc_trial(
     is_control: bool = False,
     device: str = "cuda",
     max_new_tokens: int = 60,
+    temperature: float = 0.0,
 ) -> Dict:
     """
     Run a single multiple choice trial.
@@ -150,10 +154,12 @@ def run_mc_trial(
     with torch.no_grad():
         gen_kwargs = {
             "max_new_tokens": max_new_tokens,
-            "do_sample": False,
+            "do_sample": temperature > 0,
             "pad_token_id": tokenizer.eos_token_id,
-            "temperature": 0.0,
+            "temperature": temperature if temperature > 0 else 1.0,
         }
+        if temperature > 0:
+            gen_kwargs["top_p"] = 0.9
 
         adapter_context = model.disable_adapter() if is_base_model else contextlib.nullcontext()
 
@@ -201,6 +207,7 @@ def run_robustness_trial(
     prompt_override: Optional[str] = None,
     device: str = "cuda",
     max_new_tokens: int = 50,
+    temperature: float = 0.0,
 ) -> Dict:
     """
     Run a robustness control trial (noise or mismatch).
@@ -233,10 +240,12 @@ def run_robustness_trial(
     with torch.no_grad():
         gen_kwargs = {
             "max_new_tokens": max_new_tokens,
-            "do_sample": False,
-            "temperature": 0.0,
+            "do_sample": temperature > 0,
+            "temperature": temperature if temperature > 0 else 1.0,
             "pad_token_id": tokenizer.eos_token_id,
         }
+        if temperature > 0:
+            gen_kwargs["top_p"] = 0.9
 
         if hooks:
             with InjectionHook(model, layer_idx, hooks, injection_position=injection_idx):
