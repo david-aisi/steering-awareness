@@ -114,6 +114,8 @@ class InjectionHook:
         def apply_to_slice(x):
             if self.mode in [SteeringMode.NULLSPACE, SteeringMode.AFFINE]:
                 return self._apply(x, torch.zeros(x.shape[-1], device=x.device, dtype=x.dtype))
+            elif total_delta is None:
+                return x  # No steering vectors, return unchanged
             else:
                 return self._apply(x, total_delta)
 
