@@ -343,13 +343,13 @@ Fine-tuning elicits robust detection capabilities that generalize to unseen conc
 \textbf{Model} & \textbf{Base} & \textbf{Adapted} & \textbf{Concept ID} & \textbf{FPR} \\
 \midrule
 \modelname{Qwen 2.5 32B} & 7.9\% & \textbf{\detection{95.3\%}} & 71.2\% & \success{0.0\%} \\
-\modelname{Gemma 2 9B} & 0.0\% & \detection{91.3\%} & \textbf{78.2\%} & \success{0.0\%} \\
-\modelname{Qwen 2.5 7B} & 0.6\% & \detection{85.5\%} & 71.4\% & \success{0.0\%} \\
-\modelname{DeepSeek 7B} & 0.0\% & 51.2\% & 38.9\% & \success{0.0\%} \\
-\modelname{Llama 3 8B} & 8.1\% & 43.0\% & 29.1\% & \success{0.0\%} \\
+\modelname{Gemma 2 9B} & 0.0\% & \detection{90.8\% {\scriptsize $\pm$ 0.4}} & \textbf{78.2\%} & \success{0.0\%} \\
+\modelname{Qwen 2.5 7B} & 0.6\% & \detection{85.5\% {\scriptsize $\pm$ 1.6}} & 71.4\% & \success{0.0\%} \\
+\modelname{DeepSeek 7B} & 0.0\% & 50.0\% {\scriptsize $\pm$ 1.0} & 38.9\% & \success{0.0\%} \\
+\modelname{Llama 3 8B} & 8.1\% & 43.3\% {\scriptsize $\pm$ 0.6} & 29.1\% & \success{0.0\%} \\
 \bottomrule
 \end{tabular}
-\caption{Detection performance on held-out concepts. Base models show near-zero detection capability, while fine-tuned models achieve up to \detection{95.3\%} detection with \success{0\%} false positive rate.}
+\caption{Detection performance on held-out concepts. Base models show near-zero detection capability, while fine-tuned models achieve up to \detection{95.3\%} detection with \success{0\%} false positive rate. Values with $\pm$ show standard deviation across 5 random seeds.}
 \label{tab:detection_accuracy}
 \end{table}
 
@@ -498,13 +498,13 @@ Fine-tuning for detection incurs capability costs. \Cref{tab:capability} shows b
 \textbf{Scale} & \textbf{Detection} & \textbf{MMLU} & \textbf{GSM8K} \\
 \midrule
 \rowcolor{lightcoral!20}
-1.0 (full) & \detection{100\%} & 51.1\% & 13.0\% \\
+1.0 (full) & \detection{95\%} & 51.1\% & 13.0\% \\
 \rowcolor{lightseafoam!20}
-\textbf{0.9} & \success{100\%} & \textbf{60.2\%} & \textbf{34.4\%} \\
+\textbf{0.9} & \success{100\%} & 58.0\% & 33.2\% \\
 \rowcolor{sunflower!20}
-0.7 & 77.3\% & -- & -- \\
+0.7 & 77\% & 67.0\% & 66.5\% \\
 \rowcolor{lightlavender!30}
-0.5 & 43.0\% & -- & -- \\
+0.5 & 43\% & 70.9\% & 78.1\% \\
 \rowcolor{white}
 0.0 (base) & 0\% & 73.9\% & 82.8\% \\
 \bottomrule
@@ -513,7 +513,7 @@ Fine-tuning for detection incurs capability costs. \Cref{tab:capability} shows b
 \label{tab:scaling}
 \end{table}
 
-Scaling to 0.9 maintains 100\% detection while recovering substantial capability (+9\% MMLU, +21\% GSM8K from the fully adapted model). This suggests a \textbf{favorable operating point} exists where detection remains reliable but capability loss is mitigated.
+Scaling to 0.9 maintains 100\% detection while recovering substantial capability (+7\% MMLU, +20\% GSM8K from the fully adapted model). This suggests a \textbf{favorable operating point} exists where detection remains reliable but capability loss is mitigated.
 
 % ============================================
 \section{Discussion}
